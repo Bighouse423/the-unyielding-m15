@@ -105,6 +105,7 @@
     if (!card) return false;
     if (G.state !== 'play') { if (G.state !== 'pick' && G.state !== 'altar') card = null; return false; }
     card.t += G.paused ? 0 : rdt; const t = card.t;
+    if ((G.paused || (window.OPT && OPT.open)) && window.M15PAD) return false;   // m15b: the card waits behind the pause menu
     if (G.bigText && /^STAGE \d+$/.test(G.bigText.t1 || '')) G.bigText = null;   // the old plain card
     if (t > 4.2) { card = null; return false; }
     // fade in from black
@@ -228,7 +229,7 @@
   };
   // ---------- pause: side panels + embers ----------
   const KEYS = [['sword', 'SWORD'], ['off', 'OFFHAND'], ['roll', 'ROLL'], ['jump', 'JUMP'], ['shield', 'SHIELD'], ['side', 'SIDEARM'], ['swap', 'SWAP']];
-  const kn = id => { try { const a = OPT.ACTS.find(q => q[0] === id); return String(OPT.keyName(OPT.bindOf(a))).replace(/^KEY/, '').slice(0, 5); } catch (e) { return '?'; } };
+  const kn = id => { if (window.M15PAD && M15PAD.btnName && G.inputMode === 'pad' && PAD.connected) return M15PAD.btnName(id); try { const a = OPT.ACTS.find(q => q[0] === id); return String(OPT.keyName(OPT.bindOf(a))).replace(/^KEY/, '').slice(0, 5); } catch (e) { return '?'; } };
   function drawPause(ctx, rdt) {
     if (!(G.paused && G.state === 'play' && !(window.OPT && OPT.open) && RUN.on && !RUN.hub) || G.pmPage === 'pad') return false;
     const fx0 = W / 2 - 132, fx1 = W / 2 + 132;
@@ -249,7 +250,7 @@
     const rx = W - 6 - pw;
     goldFrame(ctx, rx, py, pw, 118, '#8040d0');
     text(ctx, 'CONTROLS', rx + pw / 2, py + 4, '#ffe080', 'center'); rule(ctx, rx + 8, rx + pw - 8, py + 15);
-    KEYS.forEach(([id, l], i) => { const y = py + 22 + i * rowh; text(ctx, l.slice(0, 7), rx + 5, y, '#c8a0f0'); text(ctx, kn(id), rx + pw - 5, y, '#ffffff', 'right'); });
+    KEYS.forEach(([id, l], i) => { const y = py + 22 + i * rowh; text(ctx, l.slice(0, 7), rx + 5, y, '#c8a0f0'); const v = kn(id); if (v[0] === '{') psGlyph(ctx, v.slice(1, -1), rx + pw - 15, y - 1); else text(ctx, v, rx + pw - 5, y, '#ffffff', 'right'); });
     // best under the panels
     const b = seedBest(); text(ctx, 'BEST', lx + pw / 2, py + 126, '#a08898', 'center'); text(ctx, b.deep > 10 ? 'ABYSS ' + (b.deep - 10) : 'STAGE ' + (b.deep || 1), lx + pw / 2, py + 136, '#e0b0ff', 'center');
     text(ctx, 'SEED', rx + pw / 2, py + 126, '#a08898', 'center'); text(ctx, String((RUN.seed >>> 0) % 100000), rx + pw / 2, py + 136, '#c8b8e0', 'center');

@@ -196,7 +196,7 @@
     });
     if (TM.sel === 0 && M12.mode && !(TM.msgT > 0)) { _text(ctx, '< > ' + M12.mode().d, cx, y + 6, '#c0a0ff', 'center'); return; }
     if (TM.msgT > 0) { TM.msgT -= 1 / 60; _text(ctx, TM.msg, cx, y + 6, '#ff9a80', 'center'); }
-    else _text(ctx, G.inputMode === 'pad' ? 'D-PAD choose   CROSS select' : 'UP/DOWN choose   ENTER select', cx, y + 6, '#8070a8', 'center');
+    else _text(ctx, G.inputMode === 'pad' ? (window.M15PAD && M15PAD.xb() ? 'D-PAD choose   A select' : 'D-PAD choose   CROSS select') : 'UP/DOWN choose   ENTER select', cx, y + 6, '#8070a8', 'center');
   };
   function activate(id) {
     SFX.init && SFX.init(); try { SFX.ev ? SFX.ev('ui_click', 0.5, ['clink']) : SFX.play('clink', 0.3); } catch (e) { }

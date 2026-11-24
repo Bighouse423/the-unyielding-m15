@@ -123,7 +123,7 @@
       return;
     }
     const r = _dr.apply(this, arguments);
-    if (!RUN.winScreen && tabs === 1 && RUN.resT >= 0.3) { ctx.fillStyle = 'rgba(40,0,8,0.9)'; ctx.fillRect(W / 2 - 150, H - 18, 300, 12); text(ctx, 'TAB - HIGHLIGHTS     ENTER - THE CHAPEL', W / 2, H - 16, '#ffffff', 'center'); }
+    if (!RUN.winScreen && tabs === 1 && RUN.resT >= 0.3) { ctx.fillStyle = 'rgba(40,0,8,0.9)'; ctx.fillRect(W / 2 - 150, H - 18, 300, 12); if (window.M15PAD && G.inputMode === 'pad') promptRow(ctx, ['{triangle}', ' HIGHLIGHTS    ', '{cross}', ' THE CHAPEL'], W / 2, H - 16, '#ffffff', 'center'); else text(ctx, 'TAB - HIGHLIGHTS     ENTER - THE CHAPEL', W / 2, H - 16, '#ffffff', 'center'); }
     return r;
   };
 })();
