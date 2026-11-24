@@ -3,7 +3,7 @@
 // m5c: also shows the build in the run HUD, warns mid-run when a newer build is live, and hard-pins the
 // stage -> boss order so no path (theme fallback, endless, stale cfg) can repeat a boss in stages 1-7.
 // m7: pinned through stage 10 (the Lich King); stages 11+ are THE ABYSS (corrupted rotation, see m7.js).
-const BUILD = 'm15b';
+const BUILD = 'm15c';
 const STAGE_PIN = { 1: ['nave', 'vknight'], 2: ['crypt', 'spider'], 3: ['ossuary', 'colossus'], 4: ['courtyard', 'alphawolf'], 5: ['belfry', 'matriarch'], 6: ['arena', 'minotaur'], 7: ['necropolis', 'witch'], 8: ['kennels', 'cerberax'], 9: ['cathedral', 'uknight'], 10: ['throne', 'lich'] };
 (function () {
   const tag = () => 'BUILD ' + BUILD.toUpperCase();
