@@ -12,6 +12,35 @@
   TH.on = true;
   const L = TH.loop, TRACK = 'trk:unyielding', VTRACK = 'trk:unyielding_victory';
   try {
+    function putBuf(name, b, vol, xf) {
+      SFX.buf[name] = b; if (vol != null) SFX.fileVol[name] = vol; if (xf != null) SFX.fileXF[name] = xf;
+    }
+    function decodeB64(name, b64, vol, xf) {
+      const bin = atob(b64), u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      const go = () => {
+        if (!SFX.ctx) { setTimeout(go, 40); return; }
+        SFX.ctx.decodeAudioData(u.buffer.slice(0), b => putBuf(name, b, vol, xf), e => { TH.err = String(e && e.message || e); });
+      };
+      go();
+    }
+    function fetchTrack(name, files, vol, xf) {
+      const tryF = k => fetch('audio/' + files[k]).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(ab => new Promise((ok, no) => SFX.ctx.decodeAudioData(ab, ok, no)))
+        .then(b => putBuf(name, b, vol, xf))
+        .catch(() => { if (k + 1 < files.length) return tryF(k + 1); });
+      const go = () => { if (!SFX.ctx) { setTimeout(go, 40); return; } tryF(0); };
+      go();
+    }
+    // public copy embeds the tracks in m15th_audio.js; the local / Mac build fetches audio/*.m4a (no embed)
+    if (window.M15TH_AUDIO && M15TH_AUDIO.unyielding) {
+      decodeB64(TRACK, M15TH_AUDIO.unyielding, 0.62, 0.9);
+      if (M15TH_AUDIO.victory) decodeB64(VTRACK, M15TH_AUDIO.victory, 0.70, 1.8);
+    } else {
+      fetchTrack(TRACK, ['title_unyielding.m4a', 'title_unyielding.mp3'], 0.62, 0.9);
+      fetchTrack(VTRACK, ['title_unyielding_victory.m4a', 'title_unyielding_victory.mp3'], 0.70, 1.8);
+    }
+
     const _slots = SFX.musicSlots;
     SFX.musicSlots = function (boss) {
       const base = _slots.call(this, boss);
