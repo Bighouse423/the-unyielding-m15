@@ -16,6 +16,7 @@
     buildFog(2.0, 19, 0.6); S.buildFog = buildFog;
     const LITT = new Uint16Array(64);       // depth*16 -> weapon light weight 0..256 (0..4 cells)
     for (let i = 0; i < 64; i++) { const d = i / 16; const k = Math.max(0, 1 - d / 4); LITT[i] = Math.round(256 * k * k); }
+    S.WL = WL; S.LITT = LITT;   // m21art hook: expose weapon-light tables (read/tuned by js/m21art.js)
     let latK = null, rowK = null, rowKH = 0, rowKP = 1e9;
     function rows(hor) {   // per-row multiplier (0..256): ceiling gloom above the horizon
       if (!rowK || rowK.length !== EH) rowK = new Uint16Array(EH);
