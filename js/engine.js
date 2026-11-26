@@ -6,6 +6,7 @@ const LR = 4;                  // lightmap texels per cell
 const DEC = 16;                // decal texels per world unit
 const WZ0 = 5.6;               // wall decal top z
 const WALL_TOP = 7.5;
+let OPENW = 0;                // m20: wall height seen from an open-sky cell (0 = off, the old behaviour)
 const HAZE = [150, 80, 170];   // colorful distance haze (not darkness)
 // M7e clarity: distance haze blends toward a purer, slightly deeper version of the stage haze (same hue) and a bit
 // less of it, so distant purples/greens stay coloured instead of washing out to a milky grey-brown.
@@ -206,6 +207,8 @@ function renderWorld(cam) {
   const hor = EH / 2 + cam.pitch, eye = cam.eye;
   const LW = MW * LR, LHh = MH * LR;
   const skyT = Engine.tex.sky;
+  // m20: per-texture sky height (128 = the old mapping exactly; 256 = taller skies so looking up doesn't stretch row 0)
+  const skyH = skyT.h || 128, skyO = skyH + 22, skyM = skyH - 1, OW = OPENW;
   for (let col = 0; col < EW; col++) {
     const camX = (col + 0.5 - EW / 2) / EP;
     const rdx = dx - dy * camX, rdy = dy + dx * camX;
@@ -251,7 +254,7 @@ function renderWorld(cam) {
         let r0 = Math.max(ytop, Math.ceil(ya - 0.5)), r1 = Math.min(ybot, Math.ceil(yb - 0.5));
         if (r1 > r0) {
           if (SKY[ci]) {
-            for (let r = r0; r < r1; r++) { let v = ((r - hor) / RK + 150) | 0; if (v < 0) v = 0; if (v > 127) v = 127; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; }
+            for (let r = r0; r < r1; r++) { let v = ((r - hor) / RK + skyO) | 0; if (v < 0) v = 0; if (v > skyM) v = skyM; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; }
           } else {
             const td = CEILTEX[CT[ci]].d;
             for (let r = r0; r < r1; r++) {
@@ -274,7 +277,7 @@ function renderWorld(cam) {
       const ni = my * MW + mx;
       d0 = d1;
       const solid = SOLID[ni] === 1;
-      const nf = solid ? (FH[ni] > 6 ? WALL_TOP : FH[ni]) : FH[ni];
+      const nf = solid ? (FH[ni] > 6 ? (OW && c > 90 && SKY[ci] ? OW : WALL_TOP) : FH[ni]) : FH[ni];
       let wallX = side === 0 ? cam.y + d1 * rdy : cam.x + d1 * rdx;
       const wint = Math.floor(wallX); wallX -= wint;
       const face = side === 0 ? (sx > 0 ? 0 : 1) : (sy > 0 ? 2 : 3);
@@ -289,7 +292,9 @@ function renderWorld(cam) {
       if (solid && FH[ni] > 6) break;
       const nc = CH[ni];
       if (nc < c && ytop < ybot) {
-        const ya = hor - (c - eye) * EP / d1, yb = hor - (nc - eye) * EP / d1;
+        let cc = c;
+        if (OW && c > 90 && SKY[ci]) { cc = Math.max(nc, OW); const ys = Math.min(ybot, Math.ceil(hor - (cc - eye) * EP / d1 - 0.5)); for (let r = ytop; r < ys; r++) { let v = ((r - hor) / RK + skyO) | 0; if (v < 0) v = 0; if (v > skyM) v = skyM; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; } if (ys > ytop) ytop = ys; }
+        const ya = hor - (cc - eye) * EP / d1, yb = hor - (nc - eye) * EP / d1;
         const r0 = Math.max(ytop, Math.ceil(ya - 0.5)), r1 = Math.min(ybot, Math.ceil(yb - 0.5));
         if (r1 > r0) drawFace(col, r0, r1, d1, hor, eye, WALLDEFS[0], wallX, wint, -1, hx, hy, side);
         ytop = Math.max(ytop, Math.min(ybot, Math.ceil(yb - 0.5)));
@@ -297,7 +302,7 @@ function renderWorld(cam) {
       if (ytop >= ybot) break;
       ci = ni;
     }
-    for (let r = ytop; r < ybot; r++) { let v = ((r - hor) / RK + 150) | 0; if (v < 0) v = 0; if (v > 127) v = 127; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; }
+    for (let r = ytop; r < ybot; r++) { let v = ((r - hor) / RK + skyO) | 0; if (v < 0) v = 0; if (v > skyM) v = skyM; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; }
   }
 }
 function drawFace(col, r0, r1, d, hor, eye, def, u, wint, key, hx, hy, side, zb = -99, zt = 99) {

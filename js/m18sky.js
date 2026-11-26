@@ -3,9 +3,15 @@
   if (!window.M18 || !M18.sky) return;
   if (typeof Engine === 'undefined') return;
   const SK = M18.skyState = { on: true, key: '', frame: 0, n: 0 };
-  const W = 512, H = 128;
+  // m20 sky fix (?skyfix=0 / ?m20=0 restore m18 exactly): channels clamp instead of wrapping (the S10 green bars / Abyss yellow noise were
+  // dark sky pixels going below 0 and wrapping to 255), skies are 256 tall so looking up shows a real zenith, aurora becomes ribbons.
+  const FIX = !/[?&](?:m20|skyfix)=0(?:&|$)/.test(location.search || '');
+  const W = 512, H = FIX ? 256 : 128, OY = FIX ? 128 : 0;
+  SK.fix = FIX; SK.h = H;
   const buf = {}, base = {};
-  const px = (r, g, b, a) => ((a === undefined ? 255 : a) << 24 | (b & 255) << 16 | (g & 255) << 8 | (r & 255)) >>> 0;
+  const cl = v => v < 0 ? 0 : v > 255 ? 255 : v;
+  const px = FIX ? (r, g, b, a) => ((a === undefined ? 255 : a) << 24 | (cl(b) & 255) << 16 | (cl(g) & 255) << 8 | (cl(r) & 255)) >>> 0
+    : (r, g, b, a) => ((a === undefined ? 255 : a) << 24 | (b & 255) << 16 | (g & 255) << 8 | (r & 255)) >>> 0;
 
   function rec() {
     try {
@@ -59,18 +65,19 @@
     if (base[key]) return base[key];
     const d = new Uint32Array(W * H);
     const p = pal(key);
+    const zen = [p[0][0] * 0.45, p[0][1] * 0.45, p[0][2] * 0.55];
     for (let y = 0; y < H; y++) {
-      const t = y / (H - 1);
-      const c = t < 0.55 ? lerpC(p[0], p[1], t / 0.55) : lerpC(p[1], p[2], (t - 0.55) / 0.45);
+      const t = (y - OY) / 127;
+      const c = t < 0 ? lerpC(zen, p[0], Math.pow(y / OY, 1.6)) : t < 0.55 ? lerpC(p[0], p[1], t / 0.55) : lerpC(p[1], p[2], (t - 0.55) / 0.45);
       for (let x = 0; x < W; x++) {
         const n = (hash(x * 13 + y * 31 + key.length * 17) - 0.5) * 8;
         d[y * W + x] = px(c[0] + n, c[1] + n * 0.6, c[2] + n * 0.8);
       }
     }
     // stars (more in late / void / courtyard)
-    const starN = /abyss|throne|void|courtyard|nave|chapel/.test(key) ? 140 : /necropolis|cathedral|belfry/.test(key) ? 80 : 40;
+    const starN = (/abyss|throne|void|courtyard|nave|chapel/.test(key) ? 140 : /necropolis|cathedral|belfry/.test(key) ? 80 : 40) * (FIX ? 2 : 1);
     for (let i = 0; i < starN; i++) {
-      const x = (hash(i * 19 + 3) * W) | 0, y = (hash(i * 29 + 7) * (H * 0.62)) | 0;
+      const x = (hash(i * 19 + 3) * W) | 0, y = (hash(i * 29 + 7) * (OY + 128 * 0.62)) | 0;
       const br = 140 + (hash(i * 7) * 115) | 0;
       const tint = hash(i) > 0.8;
       d[y * W + x] = px(tint ? br * 0.85 : br, tint ? br * 0.7 : br, br);
@@ -79,7 +86,7 @@
     // moon / blood moon / cracked disc
     if (/nave|courtyard|ossuary|bloodmoon|chapel|hub/.test(key)) {
       const blood = /ossuary|bloodmoon/.test(key);
-      const cx = blood ? 360 : 300, cy = blood ? 44 : 36, rad = blood ? 22 : 16;
+      const cx = blood ? 360 : 300, cy = (blood ? 44 : 36) + OY, rad = blood ? 22 : 16;
       for (let y = cy - rad - 2; y <= cy + rad + 2; y++) for (let x = cx - rad - 4; x <= cx + rad + 4; x++) {
         if (x < 0 || x >= W || y < 0 || y >= H) continue;
         const dx = x - cx, dy = (y - cy) * 1.05, dist = Math.hypot(dx, dy);
@@ -99,7 +106,7 @@
     // abyss cracks
     if (key === 'abyss' || key === 'void2') {
       for (let k = 0; k < 7; k++) {
-        let x = (hash(k * 17 + 4) * W) | 0, y = 20 + (hash(k * 9) * 70) | 0;
+        let x = (hash(k * 17 + 4) * W) | 0, y = 20 + OY * 0.6 + (hash(k * 9) * 70) | 0;
         const len = 20 + (hash(k * 3) * 40) | 0;
         for (let i = 0; i < len; i++) {
           x = (x + ((hash(k * 11 + i) - 0.45) * 3) | 0 + W) % W;
@@ -123,9 +130,37 @@
     return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
   }
 
-  function blitClouds(out, key, t, quality) {
+  // m20: aurora as drifting ribbons (soft curtain rays rising from a wavy lower edge), not columns
+  function aurora(out, key, t, y0r, y1r) {
+    if (y0r == null) { y0r = 0; y1r = H; }
+    const c = key === 'throne' || key === 'void2' ? [170, 70, 255] : [60, 255, 170], c2 = key === 'throne' || key === 'void2' ? [60, 230, 200] : [170, 110, 255];
+    for (let band = 0; band < 2; band++) {
+      const base = OY + (band ? 18 : 40), amp = band ? 9 : 13, ph = band * 2.1;
+      for (let x = 0; x < W; x++) {
+        const u = x / W * Math.PI * 2;
+        const yc = base + amp * Math.sin(u * 2 + t * 0.12 + ph) + 5 * Math.sin(u * 5 - t * 0.21 + ph);
+        const I = Math.max(0, 0.55 + 0.45 * Math.sin(u * 3 + t * 0.17 + ph)) * (0.6 + 0.4 * noise(x * 1.0 + t * 6, band * 50, 22));
+        if (I < 0.05) continue;
+        const ray = 0.7 + 0.3 * noise(x * 2.2 + t * 14, 3 + band * 9, 9);
+        const top = Math.max(y0r, (yc - 64) | 0), bot = Math.min(y1r - 1, (yc + 6) | 0);
+        for (let y = top; y <= bot; y++) {
+          const dy = y - yc;
+          const a = (dy > 0 ? Math.exp(-dy * dy / 6) : Math.exp(dy / 22) * ray) * I * (band ? 0.5 : 0.66);
+          if (a < 0.03) continue;
+          const mixc = dy < -20 ? c2 : c, k = dy < -20 ? Math.min(1, (-dy - 20) / 30) : 0;
+          const cr = c[0] + (mixc[0] - c[0]) * k, cg = c[1] + (mixc[1] - c[1]) * k, cb = c[2] + (mixc[2] - c[2]) * k;
+          const i = y * W + x, o = out[i], r0 = o & 255, g0 = (o >> 8) & 255, b0 = (o >> 16) & 255;
+          out[i] = px(r0 + (cr - r0) * a, g0 + (cg - g0) * a, b0 + (cb - b0) * a);
+        }
+      }
+    }
+  }
+
+  // m20 x m19.5: optional row range [y0r, y1r) so m195sky can amortize the rebuild; per-pixel op order is unchanged
+  function blitClouds(out, key, t, quality, y0r, y1r) {
+    const full = y0r == null; if (full) { y0r = 0; y1r = H; }
     const src = paintBase(key);
-    out.set(src);
+    if (full) out.set(src); else out.set(src.subarray(y0r * W, y1r * W), y0r * W);
     const fire = /kennels|arena/.test(key);
     const storm = /cathedral|belfry/.test(key);
     const auroraOn = /necropolis|necro2|throne|void2/.test(key);
@@ -136,8 +171,8 @@
     for (let L = 0; L < layers; L++) {
       const sp = L === 0 ? 1 : 0.45, col = fire ? [40, 12, 8] : storm ? [18, 16, 28] : [20, 14, 32];
       const a0 = fire ? 0.55 : 0.4;
-      const y0 = 30 + L * 16, y1 = H - 4;
-      for (let y = y0; y < y1; y++) {
+      const y0 = 30 + L * 16 + OY, y1 = H - 4;
+      for (let y = Math.max(y0, y0r); y < Math.min(y1, y1r); y++) {
         for (let x = 0; x < W; x++) {
           const u = (x + drift * sp + L * 80) % W;
           const n = noise(u, y * 1.6 + L * 40, 18 - L * 4);
@@ -151,8 +186,9 @@
     }
 
     // aurora bands
-    if (auroraOn && quality > 0) {
-      for (let y = 10; y < 80; y++) {
+    if (auroraOn && quality > 0 && FIX) aurora(out, key, t, y0r, y1r);
+    else if (auroraOn && quality > 0) {
+      for (let y = Math.max(10, y0r); y < Math.min(80, y1r); y++) {
         for (let x = 0; x < W; x++) {
           const w = 0.5 + 0.5 * Math.sin((x / W) * 6 + t * 0.3 + y * 0.04);
           const band = Math.sin((x / 40) + t * 0.4 + y * 0.08) * Math.exp(-Math.pow((y - 36) / 28, 2));
@@ -171,7 +207,7 @@
       for (let i = 0; i < n; i++) {
         const x = ((hash(i * 11) * W) + t * (8 + i % 5) * 3) % W | 0;
         const y = (H - 8 - ((hash(i * 5) * 50 + t * (10 + i % 7)) % 50)) | 0;
-        if (y < 0 || y >= H) continue;
+        if (y < 0 || y >= H || y < y0r || y >= y1r) continue;
         out[y * W + x] = fire ? px(255, 140, 40) : px(255, 80, 60);
       }
     }
@@ -182,17 +218,19 @@
       const phase = (t % period);
       if (phase < 0.12 || (phase > 0.18 && phase < 0.26)) {
         const flash = phase < 0.12 ? 1 - phase / 0.12 : 1 - (phase - 0.18) / 0.08;
-        for (let i = 0; i < W * H; i++) {
+        for (let i = y0r * W; i < y1r * W; i++) {
           const o = out[i], r0 = o & 255, g0 = (o >> 8) & 255, b0 = (o >> 16) & 255;
           out[i] = px(r0 + (220 - r0) * flash * 0.35, g0 + (220 - g0) * flash * 0.4, b0 + (255 - b0) * flash * 0.5);
         }
         if (quality > 0 && phase < 0.1) {
-          let x = (hash((t / period) | 0 * 9) * W) | 0, y = 0;
+          let x = (hash((t / period) | 0 * 9) * W) | 0, y = FIX ? OY - 60 : 0;
           for (let k = 0; k < 40 && y < H - 10; k++) {
             x = (x + ((hash(((t / period) | 0) * 13 + k) - 0.5) * 8) | 0 + W) % W;
             y += 2 + (hash(k) * 3) | 0;
-            if (y < H) out[y * W + x] = px(230, 240, 255);
-            if (y < H && x + 1 < W) out[y * W + x + 1] = px(140, 160, 255);
+            if (y >= y0r && y < y1r) {
+              if (y < H) out[y * W + x] = px(230, 240, 255);
+              if (y < H && x + 1 < W) out[y * W + x + 1] = px(140, 160, 255);
+            }
           }
         }
       }
@@ -221,7 +259,9 @@
   }
 
   const _render = typeof render === 'function' ? render : null;
-  if (_render) render = function (rdt) { try { tick(); } catch (e) { M18.err = M18.err || ('sky ' + e); } return _render.apply(this, arguments); };
+  if (_render) render = function (rdt) { try { (SK.tickHook || tick)(); }   /* m19.5: SK.tickHook = amortized sky (js/m195sky.js) */ catch (e) { M18.err = M18.err || ('sky ' + e); } return _render.apply(this, arguments); };
   SK.tick = tick;
   SK.rec = rec;
+  SK.paintBase = paintBase; SK.buf = buf; SK.W = W; SK.H = H;   /* m19.5 hooks */
+  SK.blitRows = blitClouds; SK.OY = OY;   /* m20 x m19.5: the (fixed) m18 sky by row range, used by m195sky */
 })();

@@ -1957,7 +1957,7 @@ function drawHUD(ctx, cam, rdt) {
   }
   if (RUN.on && G.state !== 'pick' && G.state !== 'results') { drawElitePlates(ctx, cam); drawRunHUD(ctx); }
   // toasts
-  let ty = 36;
+  let ty = (window.M20 && M20.toastY) ? M20.toastY() : 36;   // m20: clear the boss bar
   for (let i = G.toasts.length - 1; i >= 0; i--) {
     const o = G.toasts[i]; o.t += rdt; if (o.t > o.dur) { G.toasts.splice(i, 1); continue; }
   }
