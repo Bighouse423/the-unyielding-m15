@@ -51,8 +51,14 @@ const SFX = {
       map = map || {};
       // M7c: a few shared songs -> many slots. "tracks" names each song once, "music" maps slots to a track name
       this.musicMap = Object.assign({}, map.music || {});
+      // m20f MEMLEAN: with the m16 covers director on, the old full-length song files (Bighouse, Shadowed Depths, Echoes I/II,
+      // Shadow Blades) were all decoded at 48 kHz and kept (~350 MB) only as a fallback that never plays. Skip them; anything
+      // that can't resolve yet stays quiet (the m20e gap bed fills it) instead of the synth score while a cover decodes. ?memlean=0 -> old.
+      const LEAN = this.m20fLean = !/[?&](memlean|m20f)=0/.test(location.search) && !/[?&]suno=0/.test(location.search);
+      const SKIP = { 'trk:bighouse': 1, 'trk:shadowed': 1, 'trk:echoes': 1, 'trk:echoes2': 1, 'trk:shadowblades': 1 };
+      this.m20fSkip = LEAN ? SKIP : {};
       const ents = Object.entries(map).filter(([n]) => !n.startsWith('_') && n !== 'tracks' && n !== 'music' && n !== 'sfx');
-      for (const [tn, te] of Object.entries(map.tracks || {})) ents.push(['trk:' + tn, te]);
+      for (const [tn, te] of Object.entries(map.tracks || {})) if (!this.m20fSkip['trk:' + tn]) ents.push(['trk:' + tn, te]);
       const isMus = n => n.startsWith('trk:') || n.startsWith('music_');
       const lazy = ([, e]) => !!(e && e.lazy);   // M9D: lazy tracks (boss song) load once a stage starts (loadLazy), never block / slow the title
       let pend = ents.filter(e => isMus(e[0]) && !lazy(e)).length; this.musPending = pend; const done = () => { this.musPending = Math.max(0, --pend); };
@@ -324,7 +330,7 @@ const SFX = {
     const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
     const tick = () => {
       if (!this.mus) return; const m = this.mus;
-      if (this.fileMusic(m.boss) || this.musPending > 0) { m.next = c.currentTime + 0.2; setTimeout(tick, 250); return; }
+      if (this.fileMusic(m.boss) || this.musPending > 0 || this.m20fLean) { m.next = c.currentTime + 0.2; setTimeout(tick, 250); return; }
       if (m.next < c.currentTime - 0.5) m.next = c.currentTime + 0.05;
       while (m.next < c.currentTime + 0.3) {
         const prog = PROGS[this.stageKey] || PROGS.castle;

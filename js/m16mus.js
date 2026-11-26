@@ -30,18 +30,28 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   const FULLSONG = !/[?&](fullsong|m20e)=0/.test(location.search);
   const FULLSRC = { hub: '01', s13: '02', s13c: '02', s46: '03', s46c: '03', s78: '04', s78c: '04', s9: '05', s9c: '05', s10: '06', s10c: '06', boss: '07', chapel: '08', abyss: '09', abyssc: '09', mini: '10' };
   const FULL = {};
+  // m20f BOSS2: the user's own boss songs (Echoes of Battle, Shadow Blades - the originals already in audio/, untouched)
+  // join the boss rotation as full tracks, so no boss reuses a stage song (map in m18mus). ?bossmus2=0 -> m20e map.
+  const BOSS2 = E.boss2 = !/[?&](bossmus2|m20f)=0/.test(location.search) && FULLSONG;
+  const FILE2 = { bob: 'boss_echoes_of_battle.m4a', bsb: 'boss_shadow_blades.mp3' };
+  if (BOSS2) { FULLSRC.bob = 'bob'; FULLSRC.bsb = 'bsb'; SEGS.bob = ['bob', 'l', 198.0, 0.5, 8731800, 2.2, 0.55, 0.537]; SEGS.bsb = ['bsb', 'l', 146.8, 0.5, 6473880, 2.2, 0.55, 0.525]; }
+  // m20f MEMLEAN: keep only the song playing + the one the stage needs next (stage song, its boss song); the hub song only in
+  // the hub, the next stage's song once this stage's boss is down. ~54 MB per resident song at 32 kHz. ?memlean=0 -> old.
+  const LEAN = E.lean = !/[?&](memlean|m20f)=0/.test(location.search) && FULLSONG;
   // where each m16 excerpt began inside its cover (bar-aligned, the strong part): a song's first play starts here instead of
   // at a quiet intro (a boss fight opening on a fade-in sounded like dead air); after that it resumes where it was left
   const HOT = {"hub": 30.312, "s13": 32.373, "s13c": 147.253, "s46": 57.266, "s46c": 144.163, "s78": 19.587, "s78c": 162.164, "s9": 25.129, "s9c": 135.178, "s10": 21.447, "s10c": 161.949, "boss": 84.801, "chapel": 31.022, "abyss": 81.065, "abyssc": 134.747, "mini": 93.338};
+  if (BOSS2) { HOT.bob = 16.5; HOT.bsb = 8.0; }
   const HOTON = !/[?&]hotstart=0/.test(location.search);
   const b64bytes = b64 => fetch('data:application/octet-stream;base64,' + b64).then(r => r.arrayBuffer());
   function fullBytes(src) {
     const emb = () => window.M20E_FULL && M20E_FULL[src];
-    if (window.M20E_FULLJS) {   // public copy: the songs ride in js/m20efull_XX.js (data), loaded on demand
+    if (window.M20E_FULLJS && !FILE2[src]) {   // public copy: the songs ride in js/m20efull_XX.js (data), loaded on demand
       const take = () => { const b = emb(); try { delete M20E_FULL[src]; } catch (e) { } return b64bytes(b); };   // drop the 3 MB string once read
       if (emb()) return take();
       return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'js/m20efull_' + src + '.js?v=' + (typeof BUILD !== 'undefined' ? BUILD : ''); sc.onload = () => { sc.remove(); emb() ? ok(take()) : no(new Error('no data ' + src)); }; sc.onerror = () => no(new Error('script ' + src)); document.head.appendChild(sc); });
     }
+    if (FILE2[src]) return fetch('audio/' + FILE2[src]).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
     return fetch('audio/m20e/full_' + src + '.m4a').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
   }
   function decode32(ab) {
@@ -147,16 +157,26 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   const bossOf = p => p === 'chapel' ? 'baron' : p;
   const MINI = { 3: 'butcher', 7: 'abbess' };
   function needFor(p) {
-    const s = new Set(['results', 'hub']);
+    const s = new Set(LEAN && p !== 'title' && p !== 'hub' ? ['results'] : ['results', 'hub']);
     const add = a => a && a.forEach(x => s.add(x));
     add(MAP.stage[p]); add(MAP.boss[bossOf(p)]); if (MINI[p]) add(MAP.boss[MINI[p]]);
     if (p === 'title' || p === 'hub') add(MAP.stage['1']);
-    if (typeof p === 'number' && p < 10) { const nx = MAP.stage[String(p + 1)]; if (nx) s.add(nx[0]); }
-    if (p === 10) add(MAP.stage.abyss);
+    if (!LEAN || bossDown()) {
+      if (typeof p === 'number' && p < 10) { const nx = MAP.stage[String(p + 1)]; if (nx) s.add(nx[0]); }
+      if (p === 10) add(MAP.stage.abyss);
+    }
     if (window.M13E && M13E.needHook) try { M13E.needHook(p).forEach(x => { if (MAP.boss[x] || SEGS[x]) (MAP.boss[x] || [x]).forEach(y => s.add(y)); }); } catch (e) { }
     return s;
   }
 
+  function bossDown() { try { return !!(G.boss && G.boss.alive === false && (G.boss.dead || (G.boss.hp || 0) <= 0)); } catch (e) { return false; } }
+  let leanNext = '', needSet = null, relCur = '';
+  function leanTick(p) {   // m20f: once the boss is down, warm the next stage's song (decode during the boon pick)
+    if (!LEAN || typeof p !== 'number' || !bossDown()) return;
+    const id = p + ':' + (RUN.stage | 0); if (leanNext === id) return; leanNext = id;
+    const nx = p < 10 ? MAP.stage[String(p + 1)] : MAP.stage.abyss; if (nx) { if (needSet) needSet.add(nx[0]); load(nx[0]); E.leanNext = (E.leanNext || 0) + 1; }
+    if (needSet && MINI[p] && MAP.boss[MINI[p]]) { for (const x of MAP.boss[MINI[p]]) needSet.delete(x); try { release(needSet); } catch (e) { } }   // the mini-boss song is done too
+  }
   let lastFight = -99, fighting = false, lastSense = 0;
   function sense() {
     const t = now(); if (t - lastSense < 0.2) return fighting; lastSense = t;
@@ -214,7 +234,9 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   function pick(boss) {
     const p = place(), nk = String(p);
     let d0 = null; if (MUS20E && nk !== lastNeed) { try { d0 = desired(boss); E.wantSeg = d0 && d0.seg; } catch (e) { } }
-    if (nk !== lastNeed) { lastNeed = nk; const s = needFor(p); if (MUS20E && d0 && d0.seg) { load(d0.seg); } release(s); s.forEach(load); }
+    try { leanTick(p); } catch (e) { }
+    if (LEAN && needSet && SFX.fm && relCur !== SFX.fm.name) { relCur = SFX.fm.name; try { release(needSet); } catch (e) { } }   // drop a song once it stops playing
+    if (nk !== lastNeed) { lastNeed = nk; const s = needSet = needFor(p); if (MUS20E && d0 && d0.seg) { load(d0.seg); } release(s); s.forEach(load); }
     const d = desired(boss); if (MUS20E && d) { E.wantSeg = d.seg; if (!st[d.seg]) load(d.seg); }
     if (!d) { E.cur = null; E.state = 'base'; return null; }
     if (st[d.seg] !== 'ready') return null;
