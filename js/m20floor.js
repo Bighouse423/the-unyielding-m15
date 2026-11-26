@@ -355,7 +355,13 @@
       x.fillStyle = '#8a6a3a'; x.fillRect(23, 0, 2, 13); x.fillStyle = '#c09858'; x.fillRect(23, 0, 1, 13);
       x.fillStyle = 'rgba(120,255,170,0.35)'; x.fillRect(20, 12, 8, 2);
     });
-    mkTex('m20_chains', 32, 32, (x, w, h) => {
+    if (!/[?&](chainfix|m20e)=0/.test(location.search)) mkTex('m20_chains', 32, 32, (x, w, h) => {
+      // m20e: crisp pixel links on whole pixels (the old anti-aliased strokes left half-alpha texels that shimmered)
+      const link = (cx, cy, hi) => { x.fillStyle = '#2a2a34'; x.fillRect(cx - 2, cy - 1, 5, 4); x.fillStyle = hi ? '#c8c8d4' : '#8a8a98'; x.fillRect(cx - 2, cy - 2, 4, 1); x.fillRect(cx - 2, cy + 1, 4, 1); x.fillRect(cx - 2, cy - 1, 1, 2); x.fillRect(cx + 1, cy - 1, 1, 2); };
+      for (let i = 0; i <= 8; i++) { const t = i / 8; link(Math.round(3 + 26 * t), Math.round(3 + 26 * t), i % 2); link(Math.round(29 - 26 * t), Math.round(3 + 26 * t), (i + 1) % 2); }
+      x.fillStyle = '#5a3a10'; x.fillRect(11, 11, 10, 11); x.fillStyle = '#c8a040'; x.fillRect(12, 12, 8, 9); x.fillStyle = '#f0d070'; x.fillRect(12, 12, 8, 1); x.fillStyle = '#2a1a08'; x.fillRect(15, 15, 2, 3);
+    });
+    else mkTex('m20_chains', 32, 32, (x, w, h) => {
       x.strokeStyle = '#9a9aa8'; x.lineWidth = 2; for (const [a, b, c, d] of [[2, 2, 30, 30], [30, 2, 2, 30]]) { for (let i = 0; i <= 8; i++) { const t = i / 8, px = a + (c - a) * t, py = b + (d - b) * t; x.strokeRect(px - 2, py - 1.5, 4, 3); } }
       x.fillStyle = '#c8a040'; x.fillRect(12, 12, 8, 9); x.fillStyle = '#2a1a08'; x.fillRect(15, 15, 2, 3);
     });

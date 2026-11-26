@@ -156,6 +156,9 @@
   }
   // ---------- hub sprites, markers, push-out ----------
   const inHub = () => RUN.hub && LEVEL && LEVEL.kind === 'hub';
+  // m20e: spirits keep their true size up close (they used to be pushed back to 1.25 and faded by the M12 near-camera rule,
+  // so they shrank and ghosted as you walked up); in exchange you can't walk inside them (stand-off 0.8 instead of 0.5). ?npcfix=0 -> old.
+  const NPCFIX = !/[?&](npcfix|m20e)=0/.test(location.search) ? 1 : 0, NPC_R = NPCFIX ? 0.8 : 0.5;
   function marker(id) { const s = stats(); if (nextBeat(id, s) && !HUB.talked[id]) return 'gold'; if (!HUB.reacted[id] && reactFor(id)) return 'silver'; return null; }
   M20.marker = marker;
   if (window.M9 && M9.on) M9.on('sprites', X => {
@@ -166,10 +169,10 @@
         let a = 1; if (HUB.arrival === id && HUB.arrT < 2) a = Math.min(1, HUB.arrT / 2);
         const [x, y] = n.slot, z = floorAt(x, y) + (n.float || 0) + 0.04 * Math.sin(t * 1.6 + x);
         const w = n.h * tx.w / tx.h;
-        X.push({ tex: 'glow_w', x, y, z: z + n.h * 0.1, w: w * 1.5, h: n.h * 1.15, add: true, alpha: (dawnOn ? 0.1 : 0.2) * a, lit: false, tint: dawnOn ? [255, 210, 140, 1] : [n.glow[0], n.glow[1], n.glow[2], 1] });
-        X.push({ tex: n.spr, x, y, z, w, h: n.h, alpha: (dawnOn ? 1 : 0.9) * a, glow: 0.12, rim: 0.4 });
+        X.push({ tex: 'glow_w', x, y, z: z + n.h * 0.1, w: w * 1.5, h: n.h * 1.15, add: true, alpha: (dawnOn ? 0.1 : 0.2) * a, lit: false, tint: dawnOn ? [255, 210, 140, 1] : [n.glow[0], n.glow[1], n.glow[2], 1], npc: NPCFIX });
+        X.push({ tex: n.spr, x, y, z, w, h: n.h, alpha: (dawnOn ? 1 : 0.9) * a, glow: 0.12, rim: 0.4, npc: NPCFIX });
         const mk = marker(id);
-        if (mk && a >= 1) X.push({ tex: 'glow_w', x, y, z: z + n.h + 0.25 + 0.05 * Math.sin(t * 4), w: 0.28, h: 0.38, add: true, alpha: 0.8, lit: false, tint: mk === 'gold' ? [255, 200, 70, 1] : [210, 220, 255, 1] });
+        if (mk && a >= 1) X.push({ tex: 'glow_w', x, y, z: z + n.h + 0.25 + 0.05 * Math.sin(t * 4), w: 0.28, h: 0.38, add: true, alpha: 0.8, lit: false, tint: mk === 'gold' ? [255, 200, 70, 1] : [210, 220, 255, 1], npc: NPCFIX });
       }
       if (HUB.vigilReady && M20.vigil) X.push({ tex: 'glow_w', x: 10.5, y: 4.4, z: 1.4 + 0.05 * Math.sin(t * 3), w: 0.6, h: 0.9, add: true, alpha: 0.85, lit: false, tint: [255, 210, 90, 1] });
     } catch (e) { M20.fail('npc sprites', e); }
@@ -187,7 +190,7 @@
     try {
       if (!inHub() || G.state !== 'play') { HUB.near = null; return; }
       const S = sv(); if (HUB.arrival) { HUB.arrT += dt; if (HUB.arrT > 0.05 && !HUB.arrCard && !(window.OPT && OPT.open)) { HUB.arrCard = true; const n = NPC[HUB.arrival]; G.bigText = { t1: n.name, t2: n.title + '  -  a new spirit in the Chapel', t: 0, dur: 3.2 }; SFX.play('toll', 0.6); SFX.play('ghost', 0.5); } }
-      for (const id of ORDER) { if (!S.met[id]) continue; const [x, y] = NPC[id].slot; const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy); if (d < 0.5 && d > 0.001) { P.x = x + dx / d * 0.5; P.y = y + dy / d * 0.5; } }
+      for (const id of ORDER) { if (!S.met[id]) continue; const [x, y] = NPC[id].slot; const dx = P.x - x, dy = P.y - y, d = Math.hypot(dx, dy); if (d < NPC_R && d > 0.001) { const nx = x + dx / d * NPC_R, ny = y + dy / d * NPC_R; if (!NPCFIX || !SOLID[Math.floor(ny) * MW + Math.floor(nx)]) { P.x = nx; P.y = ny; } } }
       HUB.near = facingNear();
       if (HUB.near && (KP.Tab || KP.Enter || KP.PadY) && !(window.OPT && OPT.open)) { delete KP.Tab; delete KP.Enter; delete KP.PadY; openTalk(HUB.near.id); }
       // the Vigil: walk up to the altar when the gold candle burns
@@ -364,10 +367,34 @@
     if (L.length) {
       if (K_UP()) UI.sel = (UI.sel + L.length - 1) % L.length; if (K_DN()) UI.sel = (UI.sel + 1) % L.length;
       if (K_X()) { for (let k = 1; k <= L.length; k++) { const j = (UI.sel + k) % L.length, r = L[j]; if ((r.id && sv().met[r.id] && M20.nextBeat(r.id)) || (r.p && !pageHave(r.p.id))) { UI.sel = j; break; } } }
-      if (K_OK() && UI.t > 0.2) { const r = L[UI.sel]; if (r.id && sv().met[r.id]) { UI.jr = r.id; UI.jsel = 0; SFX.play('glint', 0.4); } }
+      if (K_OK() && UI.t > 0.2) { const r = L[UI.sel]; if (r.id && sv().met[r.id]) { UI.jr = r.id; UI.jsel = 0; UI.jtop = 0; SFX.play('glint', 0.4); } }
       if (UI.sel < UI.top) UI.top = UI.sel; if (UI.sel >= UI.top + 14) UI.top = UI.sel - 13;
     }
     if (K_BACK()) { closeUI(); if (UI.bookFrom === 'pause') G.paused = true; }
+  }
+  // m20e: the journal used to give every entry two lines and cut the rest with '..' (62 of 75 synopses, 12 of 16
+  // remembrances). Now the open journal takes the whole right page: every entry is laid out in full, variable height,
+  // and the list scrolls so the selected entry is always shown whole. ?jfix=0 -> old layout.
+  const JFIX = !/[?&](jfix|m20e)=0/.test(location.search);
+  function journalFull(ctx, id, DX, LY, DW, Y1) {
+    const n = NPC[id], J = journalRows(id), TW = DW - 30, LH = 9;
+    text(ctx, n.name + '  -  JOURNAL', DX, LY + 2, n.col || '#ffe080', 'left', 0.8);
+    const lay = J.map(j => { const Ls = tfLayout(j.t, TW, 1, 99, true); return { Ls, h: Ls.length * LH + 5 }; });
+    const y0 = LY + 16, room = Y1 - y0;
+    if (UI.jtop == null || UI.jtop > UI.jsel) UI.jtop = Math.min(UI.jsel, UI.jtop == null ? 0 : UI.jtop);
+    const span = (a, b) => { let h = 0; for (let i = a; i <= b; i++) h += lay[i] ? lay[i].h : 0; return h; };
+    while (UI.jtop < UI.jsel && span(UI.jtop, UI.jsel) > room) UI.jtop++;
+    let y = y0, last = UI.jtop - 1;
+    for (let i = UI.jtop; i < J.length; i++) {
+      const j = J[i], L = lay[i]; if (y + L.h - 5 > Y1 && i > UI.jtop) break;
+      const on = i === UI.jsel; if (on) { ctx.fillStyle = 'rgba(160,80,255,0.3)'; ctx.fillRect(DX - 2, y - 2, DW, L.h - 1); }
+      text(ctx, j.rem ? 'R' : j.id, DX, y, j.ok ? '#c0a0ff' : '#5a4870', 'left', 0.7);
+      tfLines(ctx, L.Ls, DX + 24, y, j.ok ? (on ? '#ffffff' : '#e0d0f0') : '#6a5880', 'left', LH);
+      y += L.h; last = i;
+    }
+    if (UI.jtop > 0) text(ctx, '^ MORE', DX + DW - 6, LY + 2, '#a090b0', 'right', 0.7);
+    if (last < J.length - 1) text(ctx, 'v MORE', DX + DW - 6, Y1 - 6, '#a090b0', 'right', 0.7);
+    UI.jshown = [UI.jtop, last];
   }
   function bookDraw(ctx) {
     const PX = 20, PY = 8, PW = 440, PH = 254, C = completion();
@@ -393,10 +420,11 @@
         if (r.id) { const met = S.met[r.id]; label = met ? NPC[r.id].name : '???'; if (!met) col = '#7a6890'; else if (M20.nextBeat(r.id)) label += ' *'; }
         else if (r.b) { const f = bossFelled(r.b[0]), se = bossSeen(r.b[0]); label = se ? r.b[1] : '???'; if (!se) col = '#7a6890'; else if (!f) col = '#c0a080'; }
         else if (r.p) { const h = pageHave(r.p.id); label = h ? r.p.title : '- unfound -'; if (!h) col = '#7a6890'; }
-        fitBlock(ctx, label, LX, y, LW - 6, 9, col, 'left');
+        fitBlock(ctx, label, LX, y, JFIX ? LW : LW - 6, 9, col, 'left');   // m20e: +6 px so the longest page title fits whole
       });
       const r = L[UI.sel];
-      if (r && r.id) {
+      if (r && r.id && JFIX && UI.jr === r.id) journalFull(ctx, r.id, DX, LY, DW, PY + PH - 24);
+      else if (r && r.id) {
         const n = NPC[r.id], met = S.met[r.id];
         ctx.fillStyle = '#140820'; ctx.fillRect(DX, LY, 64, 80); portrait(ctx, r.id, DX, LY, 64, 80, !met);
         text(ctx, met ? n.name : '???', DX + 72, LY + 2, met ? n.col : '#8070a0', 'left'); text(ctx, met ? n.title : 'Not yet come to the Chapel', DX + 72, LY + 13, '#a898c0', 'left', 0.75);

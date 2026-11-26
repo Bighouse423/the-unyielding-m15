@@ -343,17 +343,18 @@
   // ---- HUD: set progress under the relic icons ----
   M8DRAW.push(function (ctx) {
     checkAnnounce();
-    if (!RUN.on || G.state !== 'play' || G.paused || G.toasts.length || G.bigText) return;
-    let y = 39;
+    if (!RUN.on || G.state !== 'play' || G.paused || G.toasts.length || G.bigText) { G.m20setBox = null; return; }
+    let y = 39, mx = 0;
     for (const s of SETDEF) {
       const n = SETS.have(s); if (!n) continue;
       const on = n >= 2;
       text(ctx, s.n, 6, y, on ? s.c : '#9080a8');
-      let px = 8 + s.n.length * 8 + 2;
+      let px = 8 + s.n.length * 8 + 2; mx = Math.max(mx, px + 18);
       for (let i = 0; i < 3; i++) { ctx.fillStyle = i < n ? (on ? s.c : '#c0b0d8') : 'rgba(60,40,80,0.9)'; ctx.fillRect(px + i * 6, y + 2, 4, 4); }
       if (on && s.id === 'vigil' && P.m8rip > G.time) text(ctx, 'RIPOSTE', px + 22, y, '#ffe080');
       y += 10;
     }
+    G.m20setBox = mx ? [0, mx, 30, y] : null;   // m20f: elite plates keep clear of this list
     return y > 39;
   });
   // ---- pause-menu SETS page (drawn by the settings overlay) ----

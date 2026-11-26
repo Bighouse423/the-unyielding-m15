@@ -48,6 +48,7 @@
   };
 
   // ----- near-plane sprite clamp / fade -----
+  const NEARFIX = !/[?&](nearfix|m20e)=0/.test(location.search);
   if (typeof collectSprites === 'function') {
     const _cs = collectSprites;
     collectSprites = function (cam) {
@@ -58,7 +59,9 @@
           if (!s || s.add) continue;
           const dep = s.dep;
           if (dep == null) continue;
+          if (s.npc && NEARFIX) continue;   // m20e: hub spirits keep their true size (they used to drop to 35% and fade up close)
           if (s.ent || (s.tex && /^s_/.test(s.tex))) {
+            if (NEARFIX) { if (dep < 0.42) S.splice(i, 1); continue; }   // m20e: foes too - the M9 1.05 clamp + M12 ENTCAP already stop texel blow-up
             if (dep < 0.55) { S.splice(i, 1); continue; }
             if (dep < 1.7) {
               const k = Math.max(0.35, (dep - 0.45) / 1.25);
