@@ -40,6 +40,8 @@
   const BOSS = Object.keys(BD);
   for (const t of BOSS) { const d = Object.assign({}, BD[t]); delete d.moves; EDEF[t] = d; if (typeof UNDEAD !== 'undefined' && UNDEAD.add) UNDEAD.add(t); }
   const BASE = {}; BOSS.forEach(t => BASE[t] = [EDEF[t].speed, EDEF[t].windup]);
+  // m20b: later files add bosses through this (same move vocabulary, same chrome)
+  FL.addBoss = function (t, def) { BD[t] = def; const d = Object.assign({}, def); delete d.moves; EDEF[t] = d; if (typeof UNDEAD !== 'undefined' && UNDEAD.add) UNDEAD.add(t); if (!BOSS.includes(t)) BOSS.push(t); BASE[t] = [d.speed, d.windup]; };
   // feats + codex lore for each boss
   const FEATS = [['m20_roofer', 'SLATE CLEAN', 'Fell the Slate King on the Broken Roof.'], ['m20_abbot', 'FIRST AND LAST', 'Fell the First Abbot in the Undercroft.'], ['m20_huntmaster', 'THE HUNTED', 'Fell the Huntmaster on the Rampart Walk.'],
     ['m20_cistern', 'DRAINED', 'Fell the Cistern Mother.'], ['m20_spire', 'LIGHTNING ROD', 'Fell the Spire Warden in the storm.'], ['m20_oathbound', 'OATH KEPT', 'Fell the Oathbound Knight.']];
@@ -142,7 +144,7 @@
     }
     if (e.m20cd <= 0 && los) { if (choose(e, dist, ang)) return; }
     const sp = d.speed * (e.hurtT > e.hurtMax * 0.45 ? 0.3 : 1); let mx = 0, my = 0;
-    const ranged = e.type === 'm20huntmaster' && !e.phase2;
+    const ranged = (e.type === 'm20huntmaster' || (BD[e.type] && BD[e.type].kite)) && !e.phase2;
     if (ranged && dist < 5) { const tang = ang + Math.PI / 2 * e.side; mx = -dx * 0.6 + Math.cos(tang) * 0.8; my = -dy * 0.6 + Math.sin(tang) * 0.8; if (Math.random() < dt * 0.5) e.side *= -1; }
     else if (dist > d.range * 0.75) { mx = dx; my = dy; }
     const l = Math.hypot(mx, my) || 1; mx = mx / l * sp; my = my / l * sp;
@@ -222,7 +224,7 @@
       const e = FL.boss;
       if (e && e.alive && e.m20a && e.m20a.ph === 'wind') {
         const A = e.m20a, k = clamp(A.t / A.dur, 0, 1), fz = floorAt(e.x, e.y) - 0.1, c = e.d.c, lock = A.lock !== undefined && A.t >= A.dur - A.lock;
-        if (A.k === 'lane') { const dirs = A.cross ? [0, 1, 2, 3].map(i => A.a + i * Math.PI / 2 + (e.phase2 ? Math.PI / 4 : 0)) : Array.from({ length: A.fan || 1 }, (_, f) => A.a + (f - ((A.fan || 1) - 1) / 2) * 0.42); for (const a of dirs) for (let i = 1; i <= (A.n || 7); i++) { const x = e.x + Math.cos(a) * i * 1.15, y = e.y + Math.sin(a) * i * 1.15; if (!free(x, y)) break; gl(x, y, floorAt(x, y) - 0.08, 0.8 + 0.4 * k, 0.3, 0.25 + 0.45 * k, lock ? [255, 245, 200] : A.col || c); } }
+        if (A.k === 'lane') { const dirs = A.cross ? [0, 1, 2, 3].map(i => A.a + i * Math.PI / 2 + (e.phase2 ? Math.PI / 4 : 0)) : Array.from({ length: A.fan || 1 }, (_, f) => A.a + (f - ((A.fan || 1) - 1) / 2) * 0.42); for (const a of dirs) for (let i = 1; i <= (A.n || 7); i++) { const x = e.x + Math.cos(a) * i * 1.15, y = e.y + Math.sin(a) * i * 1.15; if (!free(x, y)) break; if (Math.abs(x - P.x) < 0.75 && Math.abs(y - P.y) < 0.75) continue; gl(x, y, floorAt(x, y) - 0.08, 0.8 + 0.4 * k, 0.3, 0.25 + 0.45 * k, lock ? [255, 245, 200] : A.col || c); } }
         else if (A.k === 'ring') gl(e.x, e.y, fz, 1 + ((A.r || 3) * 2 - 1) * k, 0.4, 0.25 + 0.4 * k, c);
         else if (A.k === 'charge') for (let i = 1; i <= 7; i++) gl(e.x + Math.cos(A.a) * i, e.y + Math.sin(A.a) * i, fz + 0.03, 0.6, 0.26, 0.25 + 0.45 * k, lock ? [255, 255, 230] : c);
         else if (A.k === 'swing') gl(e.x + Math.cos(A.a) * 1.6, e.y + Math.sin(A.a) * 1.6, fz, 1.6 + 0.9 * k, 0.38, 0.2 + 0.35 * k, c);
@@ -261,6 +263,7 @@
     else if (key === 'trident') { P.wpn.sword = 'rapier'; P.mods.m20trident = 1; P.mods.m20halberd = 0; }
     else if (key === 'halberd') { P.wpn.sword = 'storm'; P.mods.m20halberd = 1; P.mods.m20trident = 0; }
     else if (key === 'seal') P.mods.m20seal = 1;
+    else if (M20.takeExt && M20.takeExt[key]) M20.takeExt[key]();
     if (RUN.picks && !RUN.picks.includes(I.id)) RUN.picks.push(I.id);
   };
   M20.takeItem = takeItem;
