@@ -22,10 +22,81 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
     for (let c = 0; c < b.numberOfChannels; c++) nb.copyToChannel(b.getChannelData(c).subarray(k0, k0 + want), c);
     SFX.buf[key(n)] = nb; SFX.fileXF[key(n)] = S[3]; SFX.fileVol[key(n)] = S[7]; st[n] = 'ready'; E.loaded[n] = 1;
   }
+  // m20e FULL SONGS: the m16 recut shipped 29-60 s bar-aligned excerpts of each ~3.5 min cover and looped them, so a song
+  // "cut off at a strange point and started over" every half-minute. Now every looping slot plays the whole cover (a copy in
+  // audio/m20e/, originals untouched) to its real end, then crossfades 2 s back into its top. Explore and combat were two
+  // excerpts of the same song: they now share the one full track, so a fight never restarts the song. Decoded at 32 kHz to
+  // keep phone memory near the old excerpt budget. Stings and the short results bed keep their m16 cuts. ?fullsong=0 -> old.
+  const FULLSONG = !/[?&](fullsong|m20e)=0/.test(location.search);
+  const FULLSRC = { hub: '01', s13: '02', s13c: '02', s46: '03', s46c: '03', s78: '04', s78c: '04', s9: '05', s9c: '05', s10: '06', s10c: '06', boss: '07', chapel: '08', abyss: '09', abyssc: '09', mini: '10' };
+  const FULL = {};
+  // where each m16 excerpt began inside its cover (bar-aligned, the strong part): a song's first play starts here instead of
+  // at a quiet intro (a boss fight opening on a fade-in sounded like dead air); after that it resumes where it was left
+  const HOT = {"hub": 30.312, "s13": 32.373, "s13c": 147.253, "s46": 57.266, "s46c": 144.163, "s78": 19.587, "s78c": 162.164, "s9": 25.129, "s9c": 135.178, "s10": 21.447, "s10c": 161.949, "boss": 84.801, "chapel": 31.022, "abyss": 81.065, "abyssc": 134.747, "mini": 93.338};
+  const HOTON = !/[?&]hotstart=0/.test(location.search);
+  const b64bytes = b64 => fetch('data:application/octet-stream;base64,' + b64).then(r => r.arrayBuffer());
+  function fullBytes(src) {
+    const emb = () => window.M20E_FULL && M20E_FULL[src];
+    if (window.M20E_FULLJS) {   // public copy: the songs ride in js/m20efull_XX.js (data), loaded on demand
+      const take = () => { const b = emb(); try { delete M20E_FULL[src]; } catch (e) { } return b64bytes(b); };   // drop the 3 MB string once read
+      if (emb()) return take();
+      return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'js/m20efull_' + src + '.js?v=' + (typeof BUILD !== 'undefined' ? BUILD : ''); sc.onload = () => { sc.remove(); emb() ? ok(take()) : no(new Error('no data ' + src)); }; sc.onerror = () => no(new Error('script ' + src)); document.head.appendChild(sc); });
+    }
+    return fetch('audio/m20e/full_' + src + '.m4a').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+  }
+  function decode32(ab) {
+    let oc = null; try { const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (OC) oc = new OC(2, 32000, 32000); } catch (e) { oc = null; }
+    const ctx = oc || SFX.ctx;
+    return new Promise((ok, no) => { try { const p = ctx.decodeAudioData(ab, ok, no); if (p && p.catch) p.catch(no); } catch (e) { no(e); } })
+      .catch(err => { if (ctx === SFX.ctx) throw err; return new Promise((ok, no) => SFX.ctx.decodeAudioData(ab.slice ? ab : ab, ok, no)); });
+  }
+  function trimSilence(b) {
+    const d = b.getChannelData(0), sr = b.sampleRate; let a = 0, z = d.length - 1;
+    while (a < Math.min(d.length, sr * 2) && Math.abs(d[a]) < 1e-4) a++;
+    const thr = 0.003; let run = 0;   // trailing: last point louder than -50 dB
+    while (z > a + sr * 10 && Math.abs(d[z]) < thr) z--;
+    z = Math.min(d.length - 1, z + Math.round(sr * 0.25));
+    const n = z - a + 1; if (a === 0 && n === d.length) { b.m20lead = 0; return b; }
+    const nb = SFX.ctx.createBuffer(b.numberOfChannels, n, sr);
+    for (let c = 0; c < b.numberOfChannels; c++) nb.copyToChannel(b.getChannelData(c).subarray(a, a + n), c);
+    nb.m20lead = a / sr; return nb;
+  }
+  // one full decode at a time; the song the director wants right now jumps the queue
+  const FQ = []; let fbusy = false;
+  function fpump() {
+    if (fbusy || !FQ.length) return;
+    const ws = E.wantSeg && FULLSRC[E.wantSeg]; let k = FQ.findIndex(j => j.src === ws); if (k < 0) k = 0;
+    const j = FQ.splice(k, 1)[0]; if (FULL[j.src] !== j.p) { fpump(); return; }   // released while waiting
+    fbusy = true;
+    fullBytes(j.src).then(decode32).then(trimSilence).then(j.ok, j.no).then(() => { fbusy = false; setTimeout(fpump, 30); });
+  }
+  function fullBuf(src) {
+    if (FULL[src]) return FULL[src];
+    const j = { src }; const p = j.p = FULL[src] = new Promise((ok, no) => { j.ok = ok; j.no = no; });
+    FQ.push(j); fpump();
+    p.catch(err => { if (FULL[src] === p) delete FULL[src]; E.err.push('full ' + src + ': ' + err); });
+    return p;
+  }
+  E.full = () => ({ on: FULLSONG, srcs: Object.keys(FULL) });
   function load(n) {
+    if (FULLSONG && FULLSRC[n] && !st[n] && SFX.ctx) {
+      st[n] = 'loading'; const S = SEGS[n];
+      fullBuf(FULLSRC[n]).then(b => { if (!st[n]) return; SFX.buf[key(n)] = b; SFX.fileXF[key(n)] = 2.0; SFX.fileVol[key(n)] = S[7]; st[n] = 'ready'; E.loaded[n] = 1; E.fullN = (E.fullN || 0) + 1;
+        try { const X = window.M19 && M19.xf; if (HOTON && X && X.resume && X.resume[key(n)] == null && HOT[n] != null) { const o = HOT[n] - (b.m20lead || 0); if (o > 0 && o < b.duration - 20) X.resume[key(n)] = o; } } catch (e) { } })
+        .catch(() => { delete st[n]; loadCut(n); });
+      return;
+    }
+    return loadCut(n);
+  }
+  function loadCut(n) {
     if (st[n] || !SFX.ctx || !SEGS[n]) return; st[n] = 'loading';
     const embed = window.M16_AUDIO && M16_AUDIO[n];
     const go = ab => new Promise((ok, no) => SFX.ctx.decodeAudioData(ab, ok, no)).then(b => { if (st[n]) trimDecode(n, b); });
+    if (embed && MUS20E) {
+      // m20e: async base64 -> bytes (fetch of a data: URI decodes off the main thread; the old charCodeAt loop over
+      // multi-MB strings blocked the frame - and the music seam scheduler - for whole seconds on phones)
+      Q.push(n); pump(); return;
+    }
     if (embed) {
       try {
         const bin = atob(embed), ab = new ArrayBuffer(bin.length), v = new Uint8Array(ab);
@@ -40,9 +111,25 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
       .catch(err => { if (k + 1 < files.length) return tryF(k + 1); st[n] = 'failed'; E.err.push(n + ': ' + err); });
     tryF(0);
   }
+  // m20e load queue: one embedded decode at a time, the track the director wants right now goes first
+  const MUS20E = !/[?&](mus20e|m20e)=0/.test(location.search);
+  const Q = []; let busy = false;
+  function pump() {
+    if (busy || !Q.length || !SFX.ctx) return;
+    let k = Q.indexOf(E.wantSeg); if (k < 0) k = 0; const n = Q.splice(k, 1)[0];
+    if (st[n] !== 'loading') { pump(); return; }
+    busy = true; const embed = M16_AUDIO[n];
+    fetch('data:application/octet-stream;base64,' + embed).then(r => r.arrayBuffer())
+      .then(ab => new Promise((ok, no) => SFX.ctx.decodeAudioData(ab, ok, no)))
+      .then(b => { if (st[n]) trimDecode(n, b); })
+      .catch(err => { st[n] = 'failed'; E.err.push(n + ': embed20e ' + err); })
+      .then(() => { busy = false; setTimeout(pump, 30); });
+  }
+  E.q = () => ({ q: Q.slice(), busy });
   function release(keep) {
     const playing = SFX.fm && SFX.fm.name;
     for (const n of Object.keys(st)) if (!keep.has(n) && key(n) !== playing) { delete st[n]; delete SFX.buf[key(n)]; delete E.loaded[n]; }
+    if (FULLSONG) { const used = new Set(); for (const n of Object.keys(st)) if (FULLSRC[n]) used.add(FULLSRC[n]); for (const src of Object.keys(FULL)) if (!used.has(src)) delete FULL[src]; }
   }
 
   const inRun = () => typeof RUN !== 'undefined' && RUN.on && typeof G !== 'undefined' && G.state !== 'title';
@@ -113,6 +200,7 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
     fightId = '';
     const pair = MAP.stage[p]; if (!pair) return null;
     if (p === 'chapel') return { seg: pair[0], q: 'bar', ty: 'calm' };
+    if (FULLSONG && FULLSRC[pair[0]] && FULLSRC[pair[0]] === FULLSRC[pair[1]] && st[pair[0]] === 'ready') return { seg: pair[0], q: 'bar', ty: 'explore' };
     return sense() ? { seg: pair[1], q: 'bar', ty: 'combat' } : { seg: pair[0], q: 'bar', ty: 'explore' };
   }
   const XF = { combat: [0.3, 0.1], explore: [1.1, 0.8], sting: [0.22, 0.04], fight: [0.18, 0.03], calm: [1.0, 0.8] };
@@ -125,8 +213,9 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   }
   function pick(boss) {
     const p = place(), nk = String(p);
-    if (nk !== lastNeed) { lastNeed = nk; const s = needFor(p); release(s); s.forEach(load); }
-    const d = desired(boss);
+    let d0 = null; if (MUS20E && nk !== lastNeed) { try { d0 = desired(boss); E.wantSeg = d0 && d0.seg; } catch (e) { } }
+    if (nk !== lastNeed) { lastNeed = nk; const s = needFor(p); if (MUS20E && d0 && d0.seg) { load(d0.seg); } release(s); s.forEach(load); }
+    const d = desired(boss); if (MUS20E && d) { E.wantSeg = d.seg; if (!st[d.seg]) load(d.seg); }
     if (!d) { E.cur = null; E.state = 'base'; return null; }
     if (st[d.seg] !== 'ready') return null;
     if (d.seg === E.cur) return E.cur;

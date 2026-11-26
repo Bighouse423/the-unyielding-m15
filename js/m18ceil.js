@@ -155,7 +155,7 @@
   if (typeof newGame === 'function') { const _ng = newGame; newGame = function () { const r = _ng.apply(this, arguments); try { dress(); } catch (e) { M18.err = M18.err || ('ceilNG ' + e); } return r; }; }
 
   // hanging chains / banners — sprites only, no collision
-  function hang(S) {
+  function hangOld(S) {
     if (openSky() || typeof LEVEL === 'undefined' || !LEVEL || typeof P === 'undefined') return;
     const MW_ = typeof MW === 'function' ? 0 : (typeof MW !== 'undefined' ? MW : 0);
     if (!MW_ || typeof CH === 'undefined') return;
@@ -180,6 +180,49 @@
         const tex = (Engine.tex && Engine.tex.h_chain) ? 'h_chain' : (Engine.tex && Engine.tex.a_chain) ? 'a_chain' : null;
         if (!tex) continue;
         S.push({ tex: tex, x: x + 0.5, y: y + 0.5, z: z - 0.95, w: 0.18, h: 1.05, lit: true, alpha: 0.9 });
+      }
+      n++;
+    }
+    C.hung = n;
+  }
+  // m20e: chains used to pop in and out as you walked: the 5-cell scan grid was anchored to the player's cell (it slid every
+  // time you crossed a tile), the cap kept whichever cells came first in scan order, and the cap/visibility flipped with the
+  // quality governor. Now: a world-anchored grid, the nearest N kept, a fixed cap, and a soft fade at the edge of the radius.
+  // ?chainfix=0 -> old behaviour.
+  const CHAINFIX = !/[?&](chainfix|m20e)=0/.test(location.search);
+  function hang(S) {
+    if (!CHAINFIX) return hangOld(S);
+    if (openSky() || typeof LEVEL === 'undefined' || !LEVEL || typeof P === 'undefined') return;
+    const MW_ = typeof MW === 'function' ? 0 : (typeof MW !== 'undefined' ? MW : 0);
+    if (!MW_ || typeof CH === 'undefined') return;
+    const theme = C.key || themeKey();
+    const step = 5, R = 12, cap = 14, MH_ = (typeof MH !== 'undefined' ? MH : 50);
+    const x0 = Math.ceil(Math.max(1, (P.x | 0) - R) / step) * step, x1 = Math.min(MW_ - 2, (P.x | 0) + R);
+    const y0 = Math.ceil(Math.max(1, (P.y | 0) - R) / step) * step, y1 = Math.min(MH_ - 2, (P.y | 0) + R);
+    const cand = [];
+    for (let y = y0; y <= y1; y += step) for (let x = x0; x <= x1; x += step) {
+      const i = y * MW_ + x;
+      if (SOLID && SOLID[i]) continue;
+      if (SKY && SKY[i]) continue;
+      const ch = CH[i]; if (!(ch > 2 && ch < 20)) continue;
+      const hsh = (x * 73856093 ^ y * 19349663 ^ (theme.length * 17)) >>> 0;
+      if (hsh % 3 !== 0) continue;
+      const d = Math.hypot(x + 0.5 - P.x, y + 0.5 - P.y); if (d > R) continue;
+      cand.push([d, x, y, ch, hsh]);
+    }
+    cand.sort((a, b) => a[0] - b[0]);
+    let n = 0;
+    for (const [d, x, y, ch, hsh] of cand) {
+      if (n >= cap) break;
+      const fade = Math.max(0, Math.min(1, (R - d) / 2.5)); if (fade <= 0) continue;
+      const z = ch - 0.04;
+      if (hsh % 5 === 0 && Engine.tex && (Engine.tex.t_banner || Engine.tex.l_banner)) {
+        S.push({ tex: Engine.tex.t_banner ? 't_banner' : 'l_banner', x: x + 0.5, y: y + 0.5, z: z - 1.3, w: 0.55, h: 1.4, lit: true, alpha: 0.92 * fade });
+      } else {
+        const tex = (Engine.tex && Engine.tex.h_chain) ? 'h_chain' : (Engine.tex && Engine.tex.a_chain) ? 'a_chain' : null;
+        if (!tex) continue;
+        const mw = (typeof EP !== 'undefined' && EP > 0) ? 2.2 * d / EP : 0;   // never thinner than ~2 screen px (thin columns shimmer)
+        S.push({ tex: tex, x: x + 0.5, y: y + 0.5, z: z - 0.95, w: Math.max(0.18, mw), h: 1.05, lit: true, alpha: 0.9 * fade });
       }
       n++;
     }

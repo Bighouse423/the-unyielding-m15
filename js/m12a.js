@@ -113,6 +113,7 @@
       for (let i = 0; i < S.length; i++) {
         const s = S[i]; if (!s) continue;
         const rx = s.x - cam.x, ry = s.y - cam.y, d = rx * dx + ry * dy;
+        if (s.npc) continue;   // m20e: hub spirits are never pushed/faded (true size; the player stands off at 0.8)
         if (s.ent) { const de = Math.max(1.05, d), r = s.h / de; if (d > 0.15 && r > M12.ENTCAP) { if (!out) out = S.slice(); const k = M12.ENTCAP / r; out[i] = Object.assign({}, s, { w: s.w * k, h: s.h * k }); M12.capN++; } continue; }
         if (d > 0.15 && d < NEAR) {
           if (!out) out = S.slice();
