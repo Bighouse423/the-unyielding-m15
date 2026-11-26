@@ -10,7 +10,7 @@
   const S = () => (window.OPT && OPT.S) || {};
   const gq = () => (typeof GFX === 'undefined' ? 2 : GFX.q);
   const atm = () => { if (!FX.on || gq() < 1) return 0; const v = QA !== null ? QA : (S().atm === undefined ? 2 : S().atm); return Math.min(v, gq()); };
-  const wfx = () => { if (!FX.on || gq() < 1) return 0; const v = QW !== null ? QW : (S().wfx === undefined ? 2 : S().wfx); return Math.min(v, gq()); };
+  const wfx = () => { const fxf = !!(window.M195 && M195.fxfix); if (!FX.on || (gq() < 1 && !fxf)) return 0; const v = QW !== null ? QW : (S().wfx === undefined ? 2 : S().wfx); return fxf ? v : Math.min(v, gq()); };   /* m19.5 fxfix */
   const nav = () => QN !== null ? QN : (S().nav === undefined ? 1 : S().nav);
   const mmap = () => QM !== null ? QM > 0 : S().mmap !== false;
   const flashK = () => (window.OPT && OPT.flashK ? OPT.flashK() : 1);

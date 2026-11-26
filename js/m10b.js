@@ -91,7 +91,7 @@
       }
     }
     for (const r of R.RING) {
-      const f = r.t / r.life, rad = r.r * (0.25 + 0.75 * Math.sqrt(f)), k = (1 - f) * (1 - f), c = r.col, n = gq() >= 2 ? 28 : 16;
+      const f = r.t / r.life, rad = r.r * (0.25 + 0.75 * Math.sqrt(f)), k = (1 - f) * (1 - f), c = r.col, n = (gq() >= 2 || (window.M195 && M195.fxfix)) ? 28 : 16;   /* m19.5 fxfix */
       for (let i = 0; i < n; i++) { const a = i / n * 6.283 + r.ph; dot(cam, r.x + Math.cos(a) * rad, r.y + Math.sin(a) * rad, r.z + 0.06 + f * 0.25, 0.07, pk(c[0], c[1], c[2], 1), 2, k); }
     }
   }
@@ -174,13 +174,20 @@
     const w = FX.bloom.width, h = FX.bloom.height;
     if (!SC) { SC = document.createElement('canvas'); SC.width = w; SC.height = h; SX = SC.getContext('2d'); SC.im = SX.createImageData(w, h); HB = new Float32Array(w * h * 3); }
     const src = FX.bimg.data, d = SC.im.data;
+    const fast = !!(window.M195 && M195.perf2);   /* m19.5 perf2: same pixels, skips spans with no hot cell */
+    if (fast && (!streakSrc.R0 || streakSrc.R0.length !== h)) { streakSrc.R0 = new Int32Array(h); streakSrc.R1 = new Int32Array(h); }
+    const R0 = streakSrc.R0, R1 = streakSrc.R1;
     for (let i = 0, j = 0; i < src.length; i += 4, j += 3) {
       const r = src[i], g = src[i + 1], b = src[i + 2], l = Math.min(r, g, b) / 255;
       let k = l > 0.45 ? (l - 0.45) / 0.55 : 0; k *= k;
       HB[j] = (r * 0.5 + 110) * k; HB[j + 1] = (g * 0.4 + 90) * k; HB[j + 2] = (b * 0.4 + 150) * k;
     }
+    if (fast) for (let y = 0; y < h; y++) { let a = -1, z = -1; for (let x = 0; x < w; x++) { const q = (y * w + x) * 3; if (HB[q] !== 0 || HB[q + 1] !== 0 || HB[q + 2] !== 0) { if (a < 0) a = x; z = x; } } R0[y] = a; R1[y] = z; }
     for (let y = 0; y < h; y++) { const row = y * w;
-      for (let x = 0; x < w; x++) { let R = 0, G2 = 0, B = 0;
+      if (fast) { const a = R0[y], z = R1[y];
+        if (a < 0) { for (let x = 0; x < w; x++) { const o = (row + x) * 4; d[o] = 0; d[o + 1] = 0; d[o + 2] = 0; d[o + 3] = 255; } continue; }
+        for (let x = 0; x < w; x++) { if (x >= a - 14 && x <= z + 14) continue; const o = (row + x) * 4; d[o] = 0; d[o + 1] = 0; d[o + 2] = 0; d[o + 3] = 255; } }
+      for (let x = 0; x < w; x++) { if (fast && (x < R0[y] - 14 || x > R1[y] + 14)) continue; let R = 0, G2 = 0, B = 0;
         for (let k = 0; k < SK.length; k++) { const xx = x + k - 14; if (xx < 0 || xx >= w) continue; const q = (row + xx) * 3, wk = SK[k]; R += HB[q] * wk; G2 += HB[q + 1] * wk; B += HB[q + 2] * wk; }
         const o = (row + x) * 4; d[o] = R > 255 ? 255 : R; d[o + 1] = G2 > 255 ? 255 : G2; d[o + 2] = B > 255 ? 255 : B; d[o + 3] = 255; } }
     SX.putImageData(SC.im, 0, 0); return SC;

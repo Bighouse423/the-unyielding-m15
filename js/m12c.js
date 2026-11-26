@@ -69,7 +69,8 @@
     try {
       if (G.state !== 'play' || G.paused || !RUN.on) return;
       const tn = tone(); if (!tn) return;
-      if ((lumT -= 1) <= 0) { lumT = 12; const src = (typeof ctxLow !== 'undefined' && ctxLow.canvas) || ctx.canvas; px.drawImage(src, 0, 0, 16, 9); const d = px.getImageData(0, 0, 16, 9).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; lum = lum * 0.6 + (s / (d.length / 4)) * 0.4; }
+      if ((lumT -= 1) <= 0 && window.M195 && M195.lumProbe) { lumT = 12; const s0 = M195.lumProbe(); if (s0 >= 0) lum = lum * 0.6 + s0 * 0.4; }   /* m19.5 perf2: no readback */
+      else if (lumT <= 0) { lumT = 12; const src = (typeof ctxLow !== 'undefined' && ctxLow.canvas) || ctx.canvas; px.drawImage(src, 0, 0, 16, 9); const d = px.getImageData(0, 0, 16, 9).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; lum = lum * 0.6 + (s / (d.length / 4)) * 0.4; }
       const over = Math.max(0, (lum - (tn === 'holy' ? 150 : 170)) / 80); if (over <= 0) return;
       ctx.save(); ctx.fillStyle = tn === 'holy' ? 'rgb(40,28,64)' : 'rgb(36,10,30)'; ctx.globalAlpha = Math.min(0.32, over * 0.4); ctx.fillRect(0, 0, W, H - 35); ctx.restore(); C.dim = over; return true;
     } catch (e) { M12.err = String(e); }

@@ -9,7 +9,7 @@
   let sd = 987654321; const fr = () => (sd = (sd * 16807) % 2147483647) / 2147483647, fa = (a, b) => a + (b - a) * fr();
   const QW = (() => { const m = /[?&]wfx=([012])/.exec(location.search); return m ? +m[1] : null; })();   // test override
   if (/[?&]fxlock=1/.test(location.search) && typeof GFX !== 'undefined') setInterval(() => { GFX.q = 2; GFX.n = 0; }, 30);   // test only: keep full GFX on the slow box
-  const lvl = () => { if (!FX.on || (typeof GFX !== 'undefined' && GFX.q < 1)) return 0; if (QW !== null) return QW; const S = window.OPT && OPT.S; const v = S && S.wfx !== undefined ? S.wfx : 2; return v; };
+  const lvl = () => { if (!FX.on || (typeof GFX !== 'undefined' && GFX.q < 1 && !(window.M195 && M195.fxfix))) return 0;   /* m19.5 fxfix */ if (QW !== null) return QW; const S = window.OPT && OPT.S; const v = S && S.wfx !== undefined ? S.wfx : 2; return v; };
   const flashK = () => (window.OPT && OPT.flashK ? OPT.flashK() : 1);
   const TAU2 = Math.PI * 2;
   // ---------- palettes ----------
