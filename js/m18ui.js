@@ -8,13 +8,15 @@
   if (typeof toast === 'function') {
     const _toast = toast;
     const q = U18.toastQ = [];
+    // m20g: G.time resets every stage, so a G.time stamp never went stale across a stage change (old ELITE SPOILS at the next stage start)
+    const tnow = U18.tnow = () => (window.M20G && M20G.toastq) ? performance.now() / 1000 : (G.time || 0);
     toast = function (t1, t2, col, dur) {
       const cardOn = window.M15 && M15.card && M15.card();
-      const busy = cardOn || (G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15) || (G.toasts && G.toasts.length >= 1) || (window.TIPS && TIPS.cur);
+      const busy = cardOn || (G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15) || (G.toasts && G.toasts.length >= 1) || (window.TIPS && TIPS.cur) || (window.M20G && M20G.toastq && window.M11 && M11.BAN && (M11.BAN.cur || M11.BAN.q.length));   // m20g: one centre message at a time (toast OR weapon banner)
       if (busy) {
         if (window.HUD2 && HUD2.on) {   // m20f hud2: no duplicates in the queue, cap it, stamp it (stale ones get dropped)
           if (q.some(a => a[0] === t1 && (a[1] || '') === (t2 || ''))) return;
-          q.push([t1, t2, col, dur, G.time || 0]); if (q.length > 8) { const k = q.findIndex(a => !(a[3] > 3.2) && !/^"/.test(a[0] || "")); q.splice(k < 0 ? 0 : k, 1); HUD2.n.dropped++; } HUD2.n.queued++; return;
+          q.push([t1, t2, col, dur, tnow()]); if (q.length > 8) { const k = q.findIndex(a => !(a[3] > 3.2) && !/^"/.test(a[0] || "")); q.splice(k < 0 ? 0 : k, 1); HUD2.n.dropped++; } HUD2.n.queued++; return;
         }
         q.push([t1, t2, col, dur]); return;
       }
@@ -22,13 +24,14 @@
     };
     const flush = () => {
       if (!q.length) return;
+      if (window.M20G && M20G.toastq && window.M11 && M11.BAN && (M11.BAN.cur || M11.BAN.q.length)) return;   // m20g: wait for the weapon banner
       if (G.state !== 'play' || G.paused) return;
       if (G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15) return;
       if (G.toasts && G.toasts.length) return;
       if (window.TIPS && TIPS.cur) return;
       if (window.HUD2 && HUD2.on && window.M15 && M15.card && M15.card()) return;   // m20f: wait for the stage card
       let a = q.shift();
-      if (window.HUD2 && HUD2.on) { while (a && a[4] != null && (G.time || 0) - a[4] > 10 && !(a[3] > 3.2) && !/^"/.test(a[0] || '')) { HUD2.n.stale++; a = q.shift(); } if (!a) return; HUD2.n.popped++; }
+      if (window.HUD2 && HUD2.on) { while (a && a[4] != null && tnow() - a[4] > 10 && !(a[3] > 3.2) && !/^"/.test(a[0] || '')) { HUD2.n.stale++; a = q.shift(); } if (!a) return; HUD2.n.popped++; }
       _toast(a[0], a[1], a[2], a[3]);
     };
     U18.flushToasts = flush;
@@ -51,7 +54,8 @@
   if (_fi2) frameInner = function () {
     try {
       const cardOn = window.M15 && M15.card && M15.card();
-      if (cardOn && G.toasts && G.toasts.length) { if (U18.toastQ) U18.toastQ.push(...G.toasts.map(t => [t.t1, t.t2, t.col, Math.max(1.2, (t.dur || 3) - (t.t || 0)), G.time || 0])); G.toasts.length = 0; }   // m20f: same array the flusher reads (was a new array = lost toasts)
+      const bigOn = window.M20G && M20G.stairfix && G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15;   // m20g: a big banner (A STAIR OPENS...) never sits on a toast
+      if ((cardOn || bigOn) && G.toasts && G.toasts.length) { if (U18.toastQ) U18.toastQ.push(...G.toasts.filter(t => !(bigOn && !cardOn && (t.dur || 3) - (t.t || 0) < 0.6)).map(t => [t.t1, t.t2, t.col, Math.max(1.2, (t.dur || 3) - (t.t || 0)), U18.tnow ? U18.tnow() : (G.time || 0)])); G.toasts.length = 0; }   // m20f: same array the flusher reads (was a new array = lost toasts)
     } catch (e) {}
     return _fi2.apply(this, arguments);
   };

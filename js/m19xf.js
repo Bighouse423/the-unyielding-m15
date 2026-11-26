@@ -300,7 +300,8 @@
     watch(rec, dur + ib.duration, fromFm && fromFm.g, ifm.g);
     L(rec);
     // hold until the bed is near its end, then xfade into the destination
-    const bed = Math.max(4, ib.duration - dur);
+    let bed = Math.max(4, ib.duration - dur);
+    if (window.M20G && M20G.musq && rec.reason === 'stage' && SFX.buf[dest]) { bed = 1.8; M20G.n.shortBed = (M20G.n.shortBed || 0) + 1; }   // m20g: the stage song is ready - a short swell, then it takes over
     X.holdUntil = t0 + bed;
     X.curveUntil = t0 + dur + 0.08;
     X.holdName = dest;
@@ -395,6 +396,11 @@
       if (X.holdUntil && now() < X.holdUntil && !(urgent(want) && want !== X.holdName)) {
         // remember a remapped (or later) destination so the bed lands on the current want
         if (want && !isIx(want)) { X.pending = want; X.holdName = want; }
+        // m20g: a stage change landed mid-bridge and its song is ready - cut the bridge short (1.5 s) instead of riding it out
+        if (window.M20G && M20G.musq && X.reason === 'stage' && want && !isIx(want) && this.buf[want] && X.holdUntil - now() > 1.6 && !X.m20gEarly) {
+          X.m20gEarly = 1; X.holdUntil = now() + 1.5;
+          setTimeout(() => { X.m20gEarly = 0; try { const nx = X.pending; if (!nx || !SFX.buf[nx]) return; goTo(nx, typ(SFX.fm && SFX.fm.name, nx), SFX.fm, 0, false); X.pending = null; M20G.n.early = (M20G.n.early || 0) + 1; } catch (e) { X.err.push('m20g ' + e); } }, 1500);
+        }
         return true;
       }
       if (X.pending && want !== X.pending && !urgent(want) && isIx(fm && fm.name)) return true;

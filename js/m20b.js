@@ -497,7 +497,9 @@
             if (Math.hypot(x - 10.5, y - 4.5) < 2.6) continue;
             CRYPT.ent = { x, y, z: floorAt(x, y) }; break;
           }
-          const s = m20sv(); if (CRYPT.ent && !s.bcseen) { s.bcseen = Date.now(); setTimeout(() => { try { G.bigText = { t1: 'A STAIR OPENS', t2: 'Behind the altar, the floor gives way to old steps.', t: 0, dur: 3.4 }; SFX.play('secret', 0.9); } catch (e) { } }, 2700); try { writeSave(); } catch (e) { } }
+          const s = m20sv(); if (CRYPT.ent && !s.bcseen) { s.bcseen = Date.now(); const stair = () => { try { G.bigText = { t1: 'A STAIR OPENS', t2: 'Behind the altar, the floor gives way to old steps.', t: 0, dur: 3.4 }; SFX.play('secret', 0.9); } catch (e) { } };
+            if (window.M20G && M20G.stairfix) { const t0 = performance.now(); const w = () => { try { const clear = G.state === 'play' && !G.paused && !G.bigText && !(G.toasts && G.toasts.length && !(G.toasts[0].t > (G.toasts[0].dur || 3) - 0.35)) && !(window.M15 && M15.card && M15.card()) && !(window.TIPS && TIPS.cur) && !(window.M11 && M11.BAN && M11.BAN.cur); if (clear || performance.now() - t0 > 20000) { stair(); M20G.n.stair = Math.round(performance.now() - t0); return; } } catch (e) { } setTimeout(w, 250); }; setTimeout(w, 2700); }   // m20g: wait for a clear screen (the Depth toast) before the banner
+            else setTimeout(stair, 2700); try { writeSave(); } catch (e) { } }
         }
       } catch (e) { ER('crypt place', e); }
       return r;

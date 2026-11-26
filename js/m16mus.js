@@ -171,11 +171,15 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
 
   function bossDown() { try { return !!(G.boss && G.boss.alive === false && (G.boss.dead || (G.boss.hp || 0) <= 0)); } catch (e) { return false; } }
   let leanNext = '', needSet = null, relCur = '';
+  // m20g MUSQ: start decoding the next stage's song as soon as the boss fight starts (was: once it died), so the next stage
+  // opens on its own song instead of the last one / a long bridge. ?musq=0
+  function bossOn() { try { return !!(window.M20G && M20G.musq && G.boss && G.boss.alive && (G.boss.awake || (SFX.mus && SFX.mus.boss))); } catch (e) { return false; } }
   function leanTick(p) {   // m20f: once the boss is down, warm the next stage's song (decode during the boon pick)
-    if (!LEAN || typeof p !== 'number' || !bossDown()) return;
-    const id = p + ':' + (RUN.stage | 0); if (leanNext === id) return; leanNext = id;
+    if (!LEAN || typeof p !== 'number') return;
+    const down = bossDown(); if (!down && !bossOn()) return;
+    const id = p + ':' + (RUN.stage | 0) + (down ? ':d' : ':a'); if (leanNext === id) return; if (!down && leanNext === p + ':' + (RUN.stage | 0) + ':d') return; leanNext = id;
     const nx = p < 10 ? MAP.stage[String(p + 1)] : MAP.stage.abyss; if (nx) { if (needSet) needSet.add(nx[0]); load(nx[0]); E.leanNext = (E.leanNext || 0) + 1; }
-    if (needSet && MINI[p] && MAP.boss[MINI[p]]) { for (const x of MAP.boss[MINI[p]]) needSet.delete(x); try { release(needSet); } catch (e) { } }   // the mini-boss song is done too
+    if (down && needSet && MINI[p] && MAP.boss[MINI[p]]) { for (const x of MAP.boss[MINI[p]]) needSet.delete(x); try { release(needSet); } catch (e) { } }   // the mini-boss song is done too
   }
   let lastFight = -99, fighting = false, lastSense = 0;
   function sense() {
