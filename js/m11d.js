@@ -57,7 +57,7 @@
     return r;
   };
   function drawBanner(ctx, rdt) {
-    if (!BAN.cur && BAN.q.length && G.state === 'play' && !G.bigText && !(window.OPT && OPT.open)) { BAN.cur = BAN.q.shift(); SFX.ev && SFX.ev('pickup_weapon', 0.8); }
+    if (!BAN.cur && BAN.q.length && G.state === 'play' && !G.bigText && !(window.OPT && OPT.open) && !(window.M20G && M20G.toastq && ((G.toasts && G.toasts.length) || (window.TIPS && TIPS.cur) || (window.M15 && M15.card && M15.card())))) { /* m20g: wait for the toast / tip / stage card */ BAN.cur = BAN.q.shift(); SFX.ev && SFX.ev('pickup_weapon', 0.8); }
     const b = BAN.cur; if (!b) return; if (G.state !== 'play') return; b.t += rdt; const D = 3.2; if (b.t > D) { BAN.cur = null; return; }
     const ina = Math.min(1, b.t / 0.18), out = b.t > D - 0.4 ? (D - b.t) / 0.4 : 1, a = Math.min(ina, out);
     const col = RC[b.r] || '#ffe080', y = 84, w = 260, x = (W - w) / 2, h = 44;

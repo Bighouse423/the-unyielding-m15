@@ -74,7 +74,9 @@
   function tap() { if (an || !SFX.ctx || !SFX.musBus) return an; an = SFX.ctx.createAnalyser(); an.fftSize = 1024; SFX.musBus.connect(an); abuf = new Float32Array(1024); return an; }
   function progRms() { if (!tap()) return 1; an.getFloatTimeDomainData(abuf); let s = 0; for (let i = 0; i < abuf.length; i++) s += abuf[i] * abuf[i]; return Math.sqrt(s / abuf.length); }
   // never the song that is playing (a filtered copy of the same cover on top of its own quiet intro sounds wrong)
-  function bedBuf() { const pl = SFX.fm && SFX.fm.buf; for (const k of ['trk:m16_hub', 'trk:m16_chapel', 'trk:unyielding']) { const b = SFX.buf[k]; if (b && b !== pl) return b; } return null; }
+  function bedBuf() { const pl = SFX.fm && SFX.fm.buf; for (const k of ['trk:m16_hub', 'trk:m16_chapel', 'trk:unyielding']) { const b = SFX.buf[k]; if (b && b !== pl) return b; }
+    if (window.M20G && M20G.titlelean) for (const k of ['trk:m19_ix_theme', 'trk:m19_ix_hub', 'trk:m19_ix_chapel', 'trk:m19_ix_mid', 'trk:m19_ix_early', 'trk:m19_ix_late']) { const b = SFX.buf[k]; if (b && b !== pl) { A.bedIx = k; return b; } }   // m20g: the title song is out of memory in a run - bed on a kept 9 s bridge slice
+    return null; }
   function bedStart() {
     const b = bedBuf(); if (!b || !SFX.musVol) return false;
     const c = SFX.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = 0.5;
