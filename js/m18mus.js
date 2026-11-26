@@ -23,6 +23,13 @@
     sexton: ['mini_st', 'mini'],
     ferrum: ['mini_st', 'mini']
   };
+  // m20f BOSS2: every boss loop comes from a boss-only song (no stage reuses it in a normal run): the Shadow Blades cover,
+  // the Shadow Theme cover, the user's own Echoes of Battle and Shadow Blades originals (audio/, untouched) and the Corrupt
+  // cover (only a stage song down in the Abyss). Lich / minis keep theirs. ?bossmus2=0 -> the m18 map above.
+  if (window.M16 && M16.boss2) Object.assign(NEXT, {
+    3: ['boss_st', 'bob'], 4: ['boss_st', 'abyss'], 5: ['boss_st', 'bsb'], 6: ['boss_st', 'boss'], 7: ['mini_st', 'mini'],
+    8: ['boss_st', 'bob'], 9: ['boss_st', 'abyss'], abyss: ['boss_st', 'bsb']
+  });
   Object.assign(M16_MAP.boss, NEXT);
   B18.map = M16_MAP.boss;
 })();

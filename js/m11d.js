@@ -68,7 +68,7 @@
     // sheen sweep
     const sx = x + ((b.t * 1.2) % 1.4 - 0.2) * w; const g = ctx.createLinearGradient(sx - 30, 0, sx + 30, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,240,200,0.18)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(x, y + 1, w, h - 2);
     const im = Engine.imgs[b.icon]; if (im) { ctx.imageSmoothingEnabled = false; const s = Math.min(2, 36 / Math.max(im.width, im.height)); ctx.drawImage(im, Math.round(x + 24 - im.width * s / 2), Math.round(y + h / 2 - im.height * s / 2), Math.round(im.width * s), Math.round(im.height * s)); }
-    text(ctx, b.sub + (b.first ? '  - FIRST FIND' : ''), x + 50, y + 8, '#a898c0');
+    text(ctx, b.sub + (b.first ? ' - FIRST FIND' : ''), x + 50, y + 8, '#a898c0');
     fitBlock(ctx, b.name, x + 50, y + 22, w - 58, 9, col, 'left');
     ctx.restore();
   }

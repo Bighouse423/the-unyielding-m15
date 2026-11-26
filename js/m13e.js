@@ -12,11 +12,13 @@ const M13E_MAP = {"stage":{"1":["sd_mid1","sd_heavy1"],"2":["bh_mid1","bh_heavy1
   const SEGS = M13E_SEGS, MAP = M13E_MAP;
   const E = window.M13E = { on: true, cur: null, ctx: '', log: [], state: 'idle', seg: SEGS, map: MAP, loaded: {}, err: [], phases: [] };
   const key = n => 'trk:m13e_' + n;
+  const LEAN20F = !/[?&](memlean|m20f|suno)=0/.test(location.search);
   const now = () => SFX.ctx ? SFX.ctx.currentTime : 0;
   const L = (...a) => { E.log.push([+now().toFixed(2)].concat(a)); if (E.log.length > 80) E.log.shift(); };
   // ---------- loading (only what the current stage needs + the next stage's bed; everything else is released) ----------
   const st = {};   // name -> 'loading' | 'ready' | 'failed'
   function load(n) {
+    if (LEAN20F && window.M16 && M16.on) return;   // m20f memlean: the m16 covers play; these stems were ~100 MB of unused fallback
     if (st[n] || !SFX.ctx || !SEGS[n]) return; st[n] = 'loading';
     const S = SEGS[n], files = ['m13e/' + n + '.m4a', 'm13e/' + n + '.mp3'];
     const tryF = k => fetch('audio/' + files[k]).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })

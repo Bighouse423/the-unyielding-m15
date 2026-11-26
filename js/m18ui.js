@@ -11,7 +11,13 @@
     toast = function (t1, t2, col, dur) {
       const cardOn = window.M15 && M15.card && M15.card();
       const busy = cardOn || (G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15) || (G.toasts && G.toasts.length >= 1) || (window.TIPS && TIPS.cur);
-      if (busy) { q.push([t1, t2, col, dur]); return; }
+      if (busy) {
+        if (window.HUD2 && HUD2.on) {   // m20f hud2: no duplicates in the queue, cap it, stamp it (stale ones get dropped)
+          if (q.some(a => a[0] === t1 && (a[1] || '') === (t2 || ''))) return;
+          q.push([t1, t2, col, dur, G.time || 0]); if (q.length > 8) { const k = q.findIndex(a => !(a[3] > 3.2) && !/^"/.test(a[0] || "")); q.splice(k < 0 ? 0 : k, 1); HUD2.n.dropped++; } HUD2.n.queued++; return;
+        }
+        q.push([t1, t2, col, dur]); return;
+      }
       return _toast(t1, t2, col, dur);
     };
     const flush = () => {
@@ -20,7 +26,10 @@
       if (G.bigText && G.bigText.t < (G.bigText.dur || 3) - 0.15) return;
       if (G.toasts && G.toasts.length) return;
       if (window.TIPS && TIPS.cur) return;
-      const a = q.shift(); _toast(a[0], a[1], a[2], a[3]);
+      if (window.HUD2 && HUD2.on && window.M15 && M15.card && M15.card()) return;   // m20f: wait for the stage card
+      let a = q.shift();
+      if (window.HUD2 && HUD2.on) { while (a && a[4] != null && (G.time || 0) - a[4] > 10 && !(a[3] > 3.2) && !/^"/.test(a[0] || '')) { HUD2.n.stale++; a = q.shift(); } if (!a) return; HUD2.n.popped++; }
+      _toast(a[0], a[1], a[2], a[3]);
     };
     U18.flushToasts = flush;
     if (typeof frameInner === 'function') { const _fi = frameInner; frameInner = function () { try { flush(); } catch (e) {} return _fi.apply(this, arguments); }; }
@@ -42,7 +51,7 @@
   if (_fi2) frameInner = function () {
     try {
       const cardOn = window.M15 && M15.card && M15.card();
-      if (cardOn && G.toasts && G.toasts.length) { U18.toastQ = (U18.toastQ || []).concat(G.toasts.map(t => [t.t1, t.t2, t.col, Math.max(1.2, (t.dur || 3) - (t.t || 0))])); G.toasts.length = 0; }
+      if (cardOn && G.toasts && G.toasts.length) { if (U18.toastQ) U18.toastQ.push(...G.toasts.map(t => [t.t1, t.t2, t.col, Math.max(1.2, (t.dur || 3) - (t.t || 0)), G.time || 0])); G.toasts.length = 0; }   // m20f: same array the flusher reads (was a new array = lost toasts)
     } catch (e) {}
     return _fi2.apply(this, arguments);
   };
