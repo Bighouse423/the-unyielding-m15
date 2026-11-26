@@ -344,6 +344,9 @@
   M8DRAW.push(function (ctx) {
     checkAnnounce();
     if (!RUN.on || G.state !== 'play' || G.paused || G.toasts.length || G.bigText) { G.m20setBox = null; return; }
+    const sa = (window.HUD2 && HUD2.setA) ? HUD2.setA() : 1;   // m20f hud2: set list fades out during fights
+    if (sa < 0.04) { G.m20setBox = null; return; }
+    const A0 = ctx.globalAlpha; ctx.globalAlpha = A0 * sa;
     let y = 39, mx = 0;
     for (const s of SETDEF) {
       const n = SETS.have(s); if (!n) continue;
@@ -354,7 +357,8 @@
       if (on && s.id === 'vigil' && P.m8rip > G.time) text(ctx, 'RIPOSTE', px + 22, y, '#ffe080');
       y += 10;
     }
-    G.m20setBox = mx ? [0, mx, 30, y] : null;   // m20f: elite plates keep clear of this list
+    ctx.globalAlpha = A0;
+    G.m20setBox = mx && sa > 0.3 ? [0, mx, 30, y] : null;   // m20f: elite plates keep clear of this list
     return y > 39;
   });
   // ---- pause-menu SETS page (drawn by the settings overlay) ----

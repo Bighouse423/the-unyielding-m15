@@ -508,7 +508,7 @@ function drawRunHUD(ctx) {
 function drawElitePlates(ctx, cam) {
   // M8c: only the NEAREST visible elite gets its affix name; the other two get a slim health bar. Names are clamped
   // inside the screen and kept under the toast stack (POISONED etc.) and clear of the hit-chain counter.
-  const near = G.enemies.filter(e => e.alive && e.elite && !e.hidden && Math.hypot(e.x - P.x, e.y - P.y) <= 7).sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y));
+  const near = G.enemies.filter(e => e.alive && (e.elite || e.m20var) && !e.hidden && Math.hypot(e.x - P.x, e.y - P.y) <= 7).sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y));
   const top = Math.max(48, (G.toasts.length ? (G.toastBot || 36) : 36) + 14), placed = [];
   let shown = 0;
   for (const e of near) {
@@ -526,11 +526,14 @@ function drawElitePlates(ctx, cam) {
       if (G.combo >= 3 && G.comboT > 0 && cx + nw / 2 > W - 100 && py - 10 < 78) py = 88;   // under the HITS counter
       const sb = !/[?&](platefix|m20e)=0/.test(location.search) && G.m20setBox;   // m20f: never over the set list (top left)
       if (sb && cx - nw / 2 < sb[1] && py - 11 < sb[3] && py + 4 > sb[2]) py = Math.min(H - 60, sb[3] + 14);
+      const mb = window.HUD2 && HUD2.on && G.m20mmBox;   // m20f hud2: never over the minimap (top right)
+      if (mb && cx + nw / 2 > mb[0] && py - 11 < mb[3] && py + 4 > mb[2]) py = Math.min(H - 60, mb[3] + 14);
       text(ctx, nm, cx, py - 10, col, 'center');
       placed.push([cx - nw / 2, cx + nw / 2, py - 11, py + 4]);
     } else {
       // bar only; skip it if it would sit on the name plate
       if (placed.some(q => pr.x + bw / 2 > q[0] - 2 && pr.x - bw / 2 < q[1] + 2 && py + 3 > q[2] && py - 1 < q[3])) { ctx.globalAlpha = 1; continue; }
+      const mb = window.HUD2 && HUD2.on && G.m20mmBox; if (mb && pr.x + bw / 2 > mb[0] && py - 1 < mb[3] && py + 3 > mb[2]) py = mb[3] + 4;
     }
     const bx = Math.round(Math.max(4, Math.min(W - bw - 4, pr.x - bw / 2)));
     ctx.fillStyle = '#12040e'; ctx.fillRect(bx - 1, Math.round(py) - 1, bw + 2, 4); ctx.fillStyle = col; ctx.fillRect(bx, Math.round(py), Math.round(bw * e.hp / e.maxhp), 2);

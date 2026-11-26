@@ -360,11 +360,11 @@
     const px = X0 + (P.x - ox) * PX, py = Y0 + (P.y - oy) * PX;
     ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 2, 2);
     ctx.fillStyle = '#ffe080'; for (let j = 2; j <= 4; j++) ctx.fillRect(Math.round(px + Math.cos(P.ang) * j) - 0.5 | 0, Math.round(py + Math.sin(P.ang) * j) - 0.5 | 0, 1, 1);
-    ctx.restore();
+    ctx.restore(); G.m20mmBox = [X0 - 3, X0 + bw + 3, Y0 - 3, Y0 + bh + 3];   // m20f hud2: plates/toasts keep clear
   }
   // drawn inside the run HUD pass: under toasts / big text; fades out while the hit-chain counter (same corner) is up
   let mmA = 1;
-  if (typeof drawRunHUD === 'function') { const _rh = drawRunHUD; drawRunHUD = function (ctx) { const r = _rh(ctx); try { const busy = G.combo >= 3 && G.comboT > 0; mmA = Math.max(0, Math.min(1, mmA + (busy ? -rdt * 6 : rdt * 3))); if (mmA > 0.02) { ctx.save(); ctx.globalAlpha = mmA; minimap(ctx); ctx.restore(); } } catch (e) { } return r; }; }
+  if (typeof drawRunHUD === 'function') { const _rh = drawRunHUD; drawRunHUD = function (ctx) { const r = _rh(ctx); G.m20mmBox = null; try { const busy = G.combo >= 3 && G.comboT > 0; mmA = Math.max(0, Math.min(1, mmA + (busy ? -rdt * 6 : rdt * 3))); if (mmA > 0.02) { ctx.save(); ctx.globalAlpha = mmA; minimap(ctx); ctx.restore(); } } catch (e) { } return r; }; }
 
   // ============ hooks into the frame ============
   const _rw = renderWorld;
