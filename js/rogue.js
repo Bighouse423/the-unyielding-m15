@@ -524,6 +524,8 @@ function drawElitePlates(ctx, cam) {
       const nm = e.plateName || e.elite.map(m => ELITES[m].n).join(' '), nw = nm.length * 8;
       let cx = Math.max(nw / 2 + 4, Math.min(W - nw / 2 - 4, pr.x));
       if (G.combo >= 3 && G.comboT > 0 && cx + nw / 2 > W - 100 && py - 10 < 78) py = 88;   // under the HITS counter
+      const sb = !/[?&](platefix|m20e)=0/.test(location.search) && G.m20setBox;   // m20f: never over the set list (top left)
+      if (sb && cx - nw / 2 < sb[1] && py - 11 < sb[3] && py + 4 > sb[2]) py = Math.min(H - 60, sb[3] + 14);
       text(ctx, nm, cx, py - 10, col, 'center');
       placed.push([cx - nw / 2, cx + nw / 2, py - 11, py + 4]);
     } else {
