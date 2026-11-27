@@ -352,8 +352,9 @@ function drawSprite(cam, s) {
   const lat = -rx * dy + ry * dx;
   const hor = EH / 2 + cam.pitch;
   const sc = EP / (s.ent && depth < 1.05 ? 1.05 : depth);   // M9: a foe in your face stops growing past arm's length (no giant texel blocks)
-  const sw = s.w * sc, sh = s.h * sc;
-  const cx = EW / 2 + lat * sc;
+  let sw = s.w * sc, sh = s.h * sc;
+  let cx = EW / 2 + lat * sc;
+  if (s.snap) { cx = ((cx + 0.5) | 0) + 0.5; sw = Math.max(3, (sw + 0.5) | 0); }   // m20j: pin thin columns to a pixel so they do not shimmer when you strafe
   const yTop = hor - (s.z + s.h - cam.eye) * sc;
   const margin = sw * (0.15 + Math.abs(s.skew || 0) + Math.abs(s.wave || 0) + Math.abs(s.legs || 0) + Math.abs(s.lean || 0) * 0.5 + (s.rot ? 0.5 : 0));
   const x0 = Math.max(0, Math.floor(cx - sw / 2 - margin)), x1 = Math.min(EW, Math.ceil(cx + sw / 2 + margin));
@@ -365,7 +366,7 @@ function drawSprite(cam, s) {
   const L = [1, 1, 1];
   if (s.lit !== false) { lightAt(s.x, s.y, L); L[0] = L[0] * 0.6 + 0.5; L[1] = L[1] * 0.6 + 0.5; L[2] = L[2] * 0.6 + 0.5; }
   if (s.glow) { L[0] += s.glow; L[1] += s.glow; L[2] += s.glow; }
-  let hk = depth * HZR; if (hk > HZM) hk = HZM; if (s.ent) hk *= 0.45;
+  let hk = depth * HZR; if (hk > HZM) hk = HZM; if (s.ent) hk *= 0.45; if (s.noHaze) hk = 0;   // m20j: thin columns do not pick up haze shifts when you strafe
   const sub = s.sub || [0, 0, 1, 1];
   const su0 = sub[0] * t.w, suw = (sub[2] - sub[0]) * t.w, sv0 = sub[1] * t.h, svh = (sub[3] - sub[1]) * t.h;
   const mask = s.blood > 0 ? bloodMaskFor(s.tex) : null; const bl = Math.min(0.5, s.blood || 0); // M8c: less red coat on hurt sprites
