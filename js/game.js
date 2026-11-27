@@ -1965,9 +1965,10 @@ function drawHUD(ctx, cam, rdt) {
     const a = Math.min(1, o.t * 6, (o.dur - o.t) * 2.5); ctx.globalAlpha = a;
     // M7c: long toasts (relic descriptions, Abyss modifiers) wrap to 2 lines / condense instead of running off the screen
     const TW = (window.HUD2 && HUD2.tw) ? HUD2.tw() : W - 28;   // m20f hud2: clear of the minimap
-    const L1 = tfLayout(o.t1, TW, 1, 2, true), L2 = o.t2 ? tfLayout(o.t2, TW, 1, 2, true) : null;
+    const TXN = window.M20I && M20I.txn, T1 = TXN ? TXN(o.t1, 1) : o.t1, T2 = TXN && o.t2 ? TXN(o.t2, 0) : o.t2;   // m20i txt2: one toast style
+    const L1 = tfLayout(T1, TW, 1, 2, true), L2 = T2 ? tfLayout(T2, TW, 1, 2, true) : null;
     const bottom = ty + 9 * (L1.length - 1) + (L2 ? 10 + 9 * (L2.length - 1) : 0) + 8, bh = bottom - ty + (L2 ? 4 : 5);
-    { const bw = Math.min(TW + 16, W - 12, Math.max(tfLinesW(L1), L2 ? tfLinesW(L2) : 0) + 16); ctx.fillStyle = 'rgba(20,4,30,0.55)'; ctx.fillRect(W / 2 - bw / 2, ty - 3, bw, bh); ctx.fillStyle = 'rgba(240,192,64,0.6)'; ctx.fillRect(W / 2 - bw / 2, ty - 3, bw, 1); }
+    { const bw = Math.min(TW + 16, W - 12, Math.max(tfLinesW(L1), L2 ? tfLinesW(L2) : 0) + 16); ctx.fillStyle = window.M20I && M20I.read ? 'rgba(14,3,22,0.74)' : 'rgba(20,4,30,0.55)'; ctx.fillRect(W / 2 - bw / 2, ty - 3, bw, bh); ctx.fillStyle = 'rgba(240,192,64,0.6)'; ctx.fillRect(W / 2 - bw / 2, ty - 3, bw, 1); }
     const y2 = tfLines(ctx, L1, W / 2, ty, o.col); if (L2) tfLines(ctx, L2, W / 2, y2 + 1, '#f0e8f0'); ty += bh + (L2 ? 2 : 1);
   }
   ctx.globalAlpha = 1; G.toastBot = ty;

@@ -123,7 +123,7 @@
     else {
       const today = dayKey(), dly = h.filter(e => e.dy === today);
       const best = dly.length ? dly.reduce((a, b) => (b.won ? 99 : b.st) > (a.won ? 99 : a.st) ? b : a) : null;
-      text(ctx, 'TODAY\'S DAILY: ' + (best ? (best.won ? 'VICTORY' : 'STAGE ' + best.st) + '  (' + dly.length + ' tr' + (dly.length > 1 ? 'ies' : 'y') + ')' : 'not attempted'), W / 2, 40, '#c0a0ff', 'center');
+      if (!(window.M20I && M20I.noDaily)) text(ctx, 'TODAY\'S DAILY: ' + (best ? (best.won ? 'VICTORY' : 'STAGE ' + best.st) + '  (' + dly.length + ' tr' + (dly.length > 1 ? 'ies' : 'y') + ')' : 'not attempted'), W / 2, 40, '#c0a0ff', 'center');
       text(ctx, 'WHEN', 48, 56, '#806090'); text(ctx, 'RESULT', 150, 56, '#806090'); text(ctx, 'MODE', 250, 56, '#806090'); text(ctx, 'KILLS', 330, 56, '#806090'); text(ctx, 'TIME', 386, 56, '#806090');
       let y = 70;
       for (const e of h.slice(F.histTop, F.histTop + 8)) {
