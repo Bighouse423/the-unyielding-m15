@@ -1,11 +1,11 @@
-// ===== m20i public (buddy) build only: a fresh save per pinned link =====
+// ===== m20j public (buddy) build only: a fresh save per pinned link =====
 // Every pinned rawcdn.githack.com link shares ONE origin, so earlier links' localStorage (save, unlocks, "prologue seen") leaked
 // into each new buddy build: no story at the start and unlocks already owned. This build keeps its save under its own prefix,
 // so a new player (or an old one on a new link) starts clean and sees the prologue. Old saves are left untouched (additive).
 // Kill switch: ?freshsave=0 (uses the shared keys again).
 (function () {
   if (/[?&]freshsave=0/.test(location.search)) return;
-  const NS = 'tub_m20i:';
+  const NS = 'tub_m20j:';
   let ls = null; try { ls = window.localStorage; } catch (e) { return; }
   if (!ls) return;
   const P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
