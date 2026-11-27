@@ -176,7 +176,8 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   function bossOn() { try { return !!(window.M20G && M20G.musq && G.boss && G.boss.alive && (G.boss.awake || (SFX.mus && SFX.mus.boss))); } catch (e) { return false; } }
   function leanTick(p) {   // m20f: once the boss is down, warm the next stage's song (decode during the boon pick)
     if (!LEAN || typeof p !== 'number') return;
-    const down = bossDown(); if (!down && !bossOn()) return;
+    const down = bossDown(); const own = MAP.stage[String(p)], ownReady = own && st[own[0]] === 'ready';
+    if (!down && !bossOn() && !(window.M20G && M20G.musq && ownReady)) return;   // m20g: once this stage's own song is up, decode the next one (a 4 s boss kill / slow phone still lands on it)
     const id = p + ':' + (RUN.stage | 0) + (down ? ':d' : ':a'); if (leanNext === id) return; if (!down && leanNext === p + ':' + (RUN.stage | 0) + ':d') return; leanNext = id;
     const nx = p < 10 ? MAP.stage[String(p + 1)] : MAP.stage.abyss; if (nx) { if (needSet) needSet.add(nx[0]); load(nx[0]); E.leanNext = (E.leanNext || 0) + 1; }
     if (down && needSet && MINI[p] && MAP.boss[MINI[p]]) { for (const x of MAP.boss[MINI[p]]) needSet.delete(x); try { release(needSet); } catch (e) { } }   // the mini-boss song is done too
@@ -238,9 +239,11 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   function pick(boss) {
     const p = place(), nk = String(p);
     let d0 = null; if (MUS20E && nk !== lastNeed) { try { d0 = desired(boss); E.wantSeg = d0 && d0.seg; } catch (e) { } }
-    try { leanTick(p); } catch (e) { }
+    const M20GQ = window.M20G && M20G.musq;
+    if (!M20GQ) try { leanTick(p); } catch (e) { }
     if (LEAN && needSet && SFX.fm && relCur !== SFX.fm.name) { relCur = SFX.fm.name; try { release(needSet); } catch (e) { } }   // drop a song once it stops playing
     if (nk !== lastNeed) { lastNeed = nk; const s = needSet = needFor(p); if (MUS20E && d0 && d0.seg) { load(d0.seg); } release(s); s.forEach(load); }
+    if (M20GQ) try { leanTick(p); } catch (e) { }   // m20g: after the stage's need set is rebuilt (before, a warm on the first tick of a stage got released right away)
     const d = desired(boss); if (MUS20E && d) { E.wantSeg = d.seg; if (!st[d.seg]) load(d.seg); }
     if (!d) { E.cur = null; E.state = 'base'; return null; }
     if (st[d.seg] !== 'ready') return null;

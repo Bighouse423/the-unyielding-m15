@@ -1,5 +1,6 @@
 // ===== synthesized WebAudio SFX + tiny gothic music =====
 'use strict';
+/* m20g audrng: audio draws from its own RNG so sound never shifts the seeded run/daily stream (?audrng=0) */ var ARND = function () { return window.M20G_ARND ? window.M20G_ARND() : Math.random(); };
 const SFX = {
   ctx: null, master: null, noise: null, muted: false, musicOn: true, mus: null,
   init() {
@@ -17,24 +18,24 @@ const SFX = {
     this.musBus = this.ctx.createGain(); this.musBus.gain.value = 1; this.musBus.connect(this.musVol);
     try {
       const sr = this.ctx.sampleRate, L = Math.floor(sr * 2.2), ir = this.ctx.createBuffer(2, L, sr);
-      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < L; i++) { const k = i / L; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 3.2) * (i < sr * 0.01 ? i / (sr * 0.01) : 1); } }
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < L; i++) { const k = i / L; d[i] = (ARND() * 2 - 1) * Math.pow(1 - k, 3.2) * (i < sr * 0.01 ? i / (sr * 0.01) : 1); } }
       const cv = this.ctx.createConvolver(); cv.buffer = ir; const send = this.ctx.createGain(); send.gain.value = 0.2;
       const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 260;
       this.master.connect(send); this.musVol.connect(send); send.connect(hp); hp.connect(cv); cv.connect(this.out);
     } catch (e) { }
     this.last = {};
     const len = this.ctx.sampleRate * 1.5; const b = this.ctx.createBuffer(1, len, this.ctx.sampleRate); const d = b.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b;
+    for (let i = 0; i < len; i++) d[i] = ARND() * 2 - 1; this.noise = b;
     this.loadOverrides();
     this.startMusic();
     setInterval(() => { try { this.ambTick(); } catch (e) { } }, 100);
   },
   env(g, t, a, d, peak) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); },
   nz(t, dur, type, f0, f1, q, peak, a = 0.003) {
-    const c = this.ctx, s = c.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = 0.7 + Math.random() * 0.6;
+    const c = this.ctx, s = c.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = 0.7 + ARND() * 0.6;
     f0 *= this.pv; f1 *= this.pv;
     const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur); fl.Q.value = q;
-    const g = c.createGain(); this.env(g, t, a, dur, peak); s.connect(fl); fl.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + dur + a + 0.05);
+    const g = c.createGain(); this.env(g, t, a, dur, peak); s.connect(fl); fl.connect(g); g.connect(this.master); s.start(t, ARND()); s.stop(t + dur + a + 0.05);
   },
   osc(t, dur, type, f0, f1, peak, a = 0.004, dest) {
     const c = this.ctx, o = c.createOscillator(); o.type = type; if (!dest) { f0 *= this.pv; f1 *= this.pv; } o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
@@ -98,8 +99,8 @@ const SFX = {
     if (same >= (m.max || 3)) kill(V.find(v => v.n === name));
     if (V.length >= 18) { const o = V.find(v => !v.pri) || V[0]; kill(o); }
     // slight pitch (+-6%) and volume (+-10%) variation on repeats, except fixed stingers
-    let rate = this.pv; if (!m.fixed && rate === 1) rate = 0.94 + Math.random() * 0.12;
-    if (!m.fixed) vol *= 0.9 + Math.random() * 0.2;
+    let rate = this.pv; if (!m.fixed && rate === 1) rate = 0.94 + ARND() * 0.12;
+    if (!m.fixed) vol *= 0.9 + ARND() * 0.2;
     const s = c.createBufferSource(); s.buffer = b; if (rate !== 1) s.playbackRate.value = rate;
     const g = c.createGain(); g.gain.value = vol * (this.fileVol[name] ?? 1); s.connect(g); g.connect(this.sfxBus || this.master); s.start();
     V.push({ n: name, s, g, end: t + b.duration / rate, pri: !!m.fixed });
@@ -205,7 +206,7 @@ const SFX = {
     const lt = this.last[name] || -1; if (t - lt < 0.028) return; this.last[name] = t;
     if (this.buf[name]) { this.pv = 1; this.playBuf(name, vol); return; }
     const v = vol * (name === 'step' ? 0.9 : 1);
-    this.pv = (name === 'hit' || name === 'heavy' || name === 'swing' || name === 'swingH' || name === 'step' || name === 'gib' || name === 'clink') ? 0.9 + Math.random() * 0.2 : 1;
+    this.pv = (name === 'hit' || name === 'heavy' || name === 'swing' || name === 'swingH' || name === 'step' || name === 'gib' || name === 'clink') ? 0.9 + ARND() * 0.2 : 1;
     switch (name) {
       case 'swing': this.nz(t, 0.16, 'bandpass', 500, 2600, 1.2, 0.35 * v, 0.03); break;
       case 'swingH': this.nz(t, 0.24, 'bandpass', 300, 1800, 1.0, 0.45 * v, 0.05); break;
@@ -215,13 +216,13 @@ const SFX = {
       case 'whip': this.nz(t, 0.12, 'bandpass', 400, 1500, 1, 0.2 * v, 0.06); this.nz(t + 0.14, 0.05, 'highpass', 3000, 6000, 0.7, 0.9 * v, 0.001); this.osc(t + 0.14, 0.04, 'square', 2400, 900, 0.25 * v, 0.001); break;
       case 'block': [523, 781, 1172, 1660].forEach((f, i) => this.osc(t, 0.35 - i * 0.05, i % 2 ? 'square' : 'triangle', f, f * 0.98, 0.18 * v, 0.001)); this.nz(t, 0.05, 'highpass', 2000, 4000, 1, 0.5 * v, 0.001); break;
       case 'parry': [1320, 1980, 2640, 3300].forEach((f, i) => this.osc(t + i * 0.015, 0.7, 'triangle', f, f, 0.2 * v, 0.001)); this.nz(t, 0.06, 'highpass', 3000, 6000, 1, 0.6 * v, 0.001); break;
-      case 'step': this.nz(t, 0.06, 'lowpass', 500 + Math.random() * 300, 100, 1, 0.22 * v, 0.002); break;
+      case 'step': this.nz(t, 0.06, 'lowpass', 500 + ARND() * 300, 100, 1, 0.22 * v, 0.002); break;
       case 'jump': this.nz(t, 0.1, 'bandpass', 300, 900, 1, 0.2 * v, 0.01); break;
       case 'land': this.nz(t, 0.12, 'lowpass', 400, 60, 1, 0.5 * v); this.osc(t, 0.1, 'sine', 90, 40, 0.4 * v); break;
       case 'dodge': this.nz(t, 0.22, 'bandpass', 2200, 300, 1.4, 0.4 * v, 0.015); this.nz(t + 0.18, 0.1, 'lowpass', 500, 80, 1, 0.35 * v, 0.002); this.osc(t + 0.18, 0.08, 'sine', 110, 50, 0.3 * v); break;
       case 'pistol': this.nz(t, 0.35, 'lowpass', 4000, 100, 0.8, 1.0 * v, 0.001); this.osc(t, 0.25, 'sine', 220, 40, 1.0 * v, 0.001); this.osc(t, 0.6, 'triangle', 1760, 1700, 0.08 * v, 0.01); break;
       case 'hurt': this.osc(t, 0.22, 'sawtooth', 170, 90, 0.35 * v); this.nz(t, 0.15, 'lowpass', 1200, 200, 1, 0.5 * v); break;
-      case 'groan': { const o = this.osc(t, 0.7, 'sawtooth', 85 + Math.random() * 30, 60, 0.12 * v, 0.1); } this.nz(t, 0.6, 'bandpass', 500, 300, 6, 0.12 * v, 0.1); break;
+      case 'groan': { const o = this.osc(t, 0.7, 'sawtooth', 85 + ARND() * 30, 60, 0.12 * v, 0.1); } this.nz(t, 0.6, 'bandpass', 500, 300, 6, 0.12 * v, 0.1); break;
       case 'screech': this.osc(t, 0.2, 'square', 2200, 3100, 0.07 * v, 0.01); this.osc(t + 0.05, 0.15, 'square', 2900, 2100, 0.06 * v, 0.01); break;
       case 'giggle': for (let i = 0; i < 4; i++) this.osc(t + i * 0.07, 0.06, 'square', 900 + i * 120, 700, 0.08 * v, 0.005); break;
       case 'ghost': this.osc(t, 1.0, 'sine', 330, 220, 0.12 * v, 0.2); this.osc(t, 1.0, 'sine', 335, 225, 0.1 * v, 0.2); break;
@@ -252,8 +253,8 @@ const SFX = {
     this.bell(t, 146.8, 3.2, 0.32 * v); this.osc(t, 2.4, 'sine', 73.4, 72.8, 0.25 * v, 0.01);
     const voice = (t0, dur, f, pk) => {
       for (const det of [-6, 0, 7]) {
-        const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det + (Math.random() * 4 - 2);
-        const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = 4.6 + Math.random(); vg.gain.value = 6; vib.connect(vg); vg.connect(o.detune);
+        const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det + (ARND() * 4 - 2);
+        const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = 4.6 + ARND(); vg.gain.value = 6; vib.connect(vg); vg.connect(o.detune);
         const f1 = c.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 700; f1.Q.value = 3;      // "ah" formants
         const f2 = c.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1150; f2.Q.value = 4;
         const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(500, t0); lp.frequency.linearRampToValueAtTime(2400, t0 + dur * 0.5); lp.frequency.linearRampToValueAtTime(900, t0 + dur);
@@ -266,7 +267,7 @@ const SFX = {
     [50, 57, 62, 65, 64].forEach(n => voice(t + 0.15, 2.0, mtof(n), 0.08 * v));          // Dm(add9) swell
     [46, 53, 58, 62, 65].forEach(n => voice(t + 1.55, 2.3, mtof(n), 0.072 * v));         // -> Bb, darker
     [38, 45].forEach(n => this.osc(t + 0.1, 3.6, 'triangle', mtof(n), mtof(n), 0.14 * v, 0.5)); // organ pedal
-    for (let i = 0; i < 14; i++) { const f = mtof([86, 89, 93, 98][i % 4]) * (1 + (Math.random() - 0.5) * 0.004); this.osc(t + 0.9 + i * 0.17 + Math.random() * 0.05, 0.9, 'sine', f, f, 0.025 * v, 0.08); }
+    for (let i = 0; i < 14; i++) { const f = mtof([86, 89, 93, 98][i % 4]) * (1 + (ARND() - 0.5) * 0.004); this.osc(t + 0.9 + i * 0.17 + ARND() * 0.05, 0.9, 'sine', f, f, 0.025 * v, 0.08); }
     this.nz(t + 0.6, 2.6, 'bandpass', 5000, 9000, 6, 0.05 * v, 0.6);                       // airy shimmer
   },
   // per-stage music hooks: music_boss_<bossKey> -> music_boss, music_stage_<stageKey> -> music_explore (see audio/README.md)

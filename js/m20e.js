@@ -83,7 +83,7 @@
     const s = c.createBufferSource(); s.buffer = b; s.loop = true;
     const seg = window.M16_SEGS && M16_SEGS.hub; const body = seg && SFX.buf['trk:m16_hub'] === b ? seg[2] : b.duration - 0.5;
     s.loopStart = 0; s.loopEnd = Math.min(b.duration, body);
-    const bar = seg ? seg[5] : 2; const off = (Math.floor(Math.random() * Math.max(1, (body / bar) | 0)) * bar) % Math.max(1, body - 1);
+    const bar = seg ? seg[5] : 2; const off = (Math.floor(ARND() * Math.max(1, (body / bar) | 0)) * bar) % Math.max(1, body - 1);
     s.connect(lp); lp.connect(g); g.connect(SFX.musVol); g.gain.value = 0.0001;
     const t = c.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.3, t + 0.35);
     s.start(t, off); bed = { s, g, lp, t0: t }; A.bedOn++; L('bed-in', { off: +off.toFixed(1), playing: SFX.fm && SFX.fm.name }); return true;

@@ -324,8 +324,9 @@ function drawFace(col, r0, r1, d, hor, eye, def, u, wint, key, hx, hy, side, zb 
   for (let r = r0; r < r1; r++) {
     const z = eye + (hor - (r + 0.5)) * d / EP;
     let p;
-    if (tall && z >= tall.z0 && z < tall.z1) {
-      const tv = Math.min(tall.t.h - 1, ((tall.z1 - z) / (tall.z1 - tall.z0) * tall.t.h) | 0);
+    if (tall && z >= tall.z0 && (z < tall.z1 || tall.rep)) {   // m20h: tall.rep tiles the decal up the whole wall (a full gate / ossuary column instead of a cut-off strip)
+      let tf = (tall.z1 - z) / (tall.z1 - tall.z0); if (tf < 0) tf -= Math.floor(tf);
+      const tv = Math.min(tall.t.h - 1, (tf * tall.t.h) | 0);
       p = tall.t.d[tv * tall.t.w + tallU];
     } else {
       let fz = z - Math.floor(z); const tv = ((1 - fz) * 63.99) | 0; p = bd[tv * 64 + tu];
