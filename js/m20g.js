@@ -5,6 +5,8 @@
 (function () {
   const Q = location.search, off = k => new RegExp('[?&](' + k + '|m20g)=0').test(Q);
   const M = window.M20G = { on: !off('m20g'), toastq: !off('toastq'), bossmus3: !off('bossmus3'), stairfix: !off('stairfix'), musq: !off('musq'), titlelean: !off('titlelean'), n: { purged: 0, tRel: 0, tLoad: 0, shortBed: 0 }, err: [] };
+  // audrng (own flag, ?audrng=0): SFX/bed randomness gets its own stream, so a sound or a music decode finishing never shifts the seeded level / daily RNG
+  if (!/[?&]audrng=0/.test(Q)) { let s = (Date.now() ^ 0x9e3779b9) >>> 0; window.M20G_ARND = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   if (!M.on) { for (const k of ['toastq', 'bossmus3', 'stairfix', 'musq', 'titlelean']) M[k] = false; return; }
   const ER = (w, e) => { if (M.err.length < 20) M.err.push(w + ': ' + String(e && e.message || e)); };
 
