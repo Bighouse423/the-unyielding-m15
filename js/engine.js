@@ -239,11 +239,9 @@ function renderWorld(cam) {
             if (isBlood) { tu = (tu + ((SH.t * 6) | 0)) & 63; tv = (tv + ((Math.sin(SH.t + fx * 6) * 3) | 0)) & 63; }
             let p = td[tv * 64 + tu];
             if (dec) { const a = dec[((fy * DEC) | 0) * DEC + ((fx * DEC) | 0)]; if (a > 18) { const bc = BLOODC[a]; p = a > 90 ? (0xff000000 | bc) : (p & 0xff000000) | (((((p & 0xff) + (bc & 0xff)) >> 1)) | ((((p >> 8) & 0xff) >> 2) << 8) | (((((p >> 16) & 0xff) + ((bc >> 16) & 0xff)) >> 2) << 16)); } }
-            let lx = (wx * LR) | 0, ly = (wy * LR) | 0; if (lx < 0) lx = 0; if (ly < 0) ly = 0; if (lx >= LW) lx = LW - 1; if (ly >= LHh) ly = LHh - 1;
-            const li = ly * LW + lx, fk = FLK[li];
             let hk = dist * HZR; if (hk > HZM) hk = HZM; const ik = 1 - hk;
             if (isBlood) shadeK(r * EW + col, p, dist, 1.3 * ik, 1.1 * ik, 1.1 * ik, HZ[0] * hk, HZ[1] * hk, HZ[2] * hk, ik);
-            else shadeK(r * EW + col, p, dist, (LMr[li] + LTr[li] * fk) * ik, (LMg[li] + LTg[li] * fk) * ik, (LMb[li] + LTb[li] * fk) * ik, HZ[0] * hk, HZ[1] * hk, HZ[2] * hk, ik);
+            else { lightAt(wx, wy, _l); shadeK(r * EW + col, p, dist, _l[0] * ik, _l[1] * ik, _l[2] * ik, HZ[0] * hk, HZ[1] * hk, HZ[2] * hk, ik); }
           }
         }
         ybot = Math.min(ybot, Math.max(ytop, Math.ceil(ya - 0.5)));
@@ -335,7 +333,7 @@ function drawFace(col, r0, r1, d, hor, eye, def, u, wint, key, hx, hy, side, zb 
     // v2.3 contact shadow at the wall foot + soft falloff toward the top of tall walls
     let ao = 1; const hz = z - zb; if (hz < 0.5) ao = 0.58 + 0.42 * (hz < 0 ? 0 : hz * 2);
     const tz = zt - z; if (zt < 50 && tz < 0.35) ao *= 0.8 + 0.2 * (tz / 0.35);
-    if (ao < 1) { const da = ((r + col) & 1) ? 0.03 : 0; ao += da; shadeK(r * EW + col, p, d, lr * ao, lg * ao, lb * ao, ar, ag, ab, ik); }
+    if (ao < 1) { let rr = r, cc = col; if (window.M20M && M20M.hdfix && typeof RK === 'number' && RK > 1) { rr = (r / RK) | 0; cc = (col / RK) | 0; } const da = ((rr + cc) & 1) ? 0.03 : 0; ao += da; shadeK(r * EW + col, p, d, lr * ao, lg * ao, lb * ao, ar, ag, ab, ik); }
     else shadeK(r * EW + col, p, d, lr, lg, lb, ar, ag, ab, ik);
   }
 }
