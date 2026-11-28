@@ -224,8 +224,12 @@
     // beacon: a narrow column of light at the gate once you've seen it (or when close)
     if (gateKnown || Math.hypot(cp.x - P.x, cp.y - P.y) < 9) {
       gateShaft.x = (g.x + 0.5 + cp.x) / 2; gateShaft.y = (g.y + 0.5 + cp.y) / 2; const open = g.state === 'open';
-      gateShaft.c = open ? [255, 210, 90] : [70, 255, 140]; gateShaft.i = 0.16 + 0.06 * Math.sin(now * 2.2); drawShaft(cam, gateShaft, now);
-      for (let k = 0; k < 3; k++) { const ph = (now * 0.35 + k / 3) % 1; drawParticle(cam, gateShaft.x + 0.25 * Math.sin(now + k * 2), gateShaft.y + 0.25 * Math.cos(now * 1.3 + k), ph * 3.4, 0.02, open ? pack(200, 160, 60) : pack(50, 200, 110), true); }
+      gateShaft.c = open ? [255, 210, 90] : [70, 255, 140];
+      const dist = Math.hypot(gateShaft.x - P.x, gateShaft.y - P.y);
+      const near = (window.M21B && M21B.navfix && dist < 2.4) ? Math.max(0.12, (dist - 0.5) / 1.9) : 1;
+      gateShaft.i = (0.16 + 0.06 * Math.sin(now * 2.2)) * near;
+      if (near > 0.18) drawShaft(cam, gateShaft, now);
+      if (near > 0.45) for (let k = 0; k < 3; k++) { const ph = (now * 0.35 + k / 3) % 1; drawParticle(cam, gateShaft.x + 0.25 * Math.sin(now + k * 2), gateShaft.y + 0.25 * Math.cos(now * 1.3 + k), ph * 3.4, 0.02, open ? pack(200, 160, 60) : pack(50, 200, 110), true); }
     }
     // trail: a faint wisp drifts along the walkable route toward the gate. SUBTLE: only after 45 s with nothing new explored.
     const lost = now - lastNew > 45 && g.state === 'closed';

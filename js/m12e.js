@@ -26,7 +26,7 @@
     for (let i = 0; i < path.length; i++) for (let j = i + 2; j < path.length; j++) {
       const a = path[i], b = path[j]; if (Math.abs(a.cx - b.cx) + Math.abs(a.cy - b.cy) !== 1) continue; cands.push([a, b]);
     }
-    cands.sort(() => R() - 0.5);
+    for (let i = cands.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const t = cands[i]; cands[i] = cands[j]; cands[j] = t; }
     const want = 1 + (R() < 0.5 ? 1 : 0); let made = 0;
     const nearSecret = (x, y) => sec.some(s => x >= s.x0 - 2 && x <= s.x1 + 2 && y >= s.y0 - 2 && y <= s.y1 + 2);
     for (const [a, b] of cands) {

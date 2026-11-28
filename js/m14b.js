@@ -40,7 +40,7 @@
     const pool = cand.filter(r => r !== lastP).sort((a, b) => a.id - b.id);
     if (!pool.length) return;
     let n = 1 + (pool.length >= 3 && R() < 0.5 ? 1 : 0);
-    const types = list.slice(); if (key === 'abyss') types.sort(() => R() - 0.5);
+    const types = list.slice(); if (key === 'abyss') { for (let i = types.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const t = types[i]; types[i] = types[j]; types[j] = t; } }
     const picked = [];
     for (let k = 0; k < n && pool.length; k++) {
       const type = M14B.force ? (Array.isArray(M14B.force) ? M14B.force[k % M14B.force.length] : M14B.force) : types[k % types.length];

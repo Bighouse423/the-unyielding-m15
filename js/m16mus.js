@@ -136,6 +136,8 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
       .then(() => { busy = false; setTimeout(pump, 30); });
   }
   E.q = () => ({ q: Q.slice(), busy });
+  E.warm = load;
+  E.stOf = n => st[n];
   function release(keep) {
     const playing = SFX.fm && SFX.fm.name;
     for (const n of Object.keys(st)) if (!keep.has(n) && key(n) !== playing) { delete st[n]; delete SFX.buf[key(n)]; delete E.loaded[n]; }
@@ -165,6 +167,12 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
       if (typeof p === 'number' && p < 10) { const nx = MAP.stage[String(p + 1)]; if (nx) s.add(nx[0]); }
       if (p === 10) add(MAP.stage.abyss);
     }
+    // m21b: start decoding s9 from stage 7, s10 from 9, abyss from 10, so the ix bed is not needed
+    if (typeof p === 'number' && p >= 7) {
+      if (p >= 7) { const nx = MAP.stage['9']; if (nx) s.add(nx[0]); }
+      if (p >= 9) { const nx = MAP.stage['10']; if (nx) s.add(nx[0]); }
+      if (p >= 10) add(MAP.stage.abyss);
+    }
     if (window.M13E && M13E.needHook) try { M13E.needHook(p).forEach(x => { if (MAP.boss[x] || SEGS[x]) (MAP.boss[x] || [x]).forEach(y => s.add(y)); }); } catch (e) { }
     return s;
   }
@@ -177,7 +185,7 @@ const M16_MAP = {"stage":{"1":["s13","s13c"],"2":["s13","s13c"],"3":["s13","s13c
   function leanTick(p) {   // m20f: once the boss is down, warm the next stage's song (decode during the boon pick)
     if (!LEAN || typeof p !== 'number') return;
     const down = bossDown(); const own = MAP.stage[String(p)], ownReady = own && st[own[0]] === 'ready';
-    if (!down && !bossOn() && !(window.M20G && M20G.musq && ownReady)) return;   // m20g: once this stage's own song is up, decode the next one (a 4 s boss kill / slow phone still lands on it)
+    if (!down && !bossOn() && !(window.M20G && M20G.musq && ownReady) && !(p >= 7)) return;   // m21b: from stage 7 start the next long song immediately so the ix bed isn't needed
     const id = p + ':' + (RUN.stage | 0) + (down ? ':d' : ':a'); if (leanNext === id) return; if (!down && leanNext === p + ':' + (RUN.stage | 0) + ':d') return; leanNext = id;
     const nx = p < 10 ? MAP.stage[String(p + 1)] : MAP.stage.abyss; if (nx) { if (needSet) needSet.add(nx[0]); load(nx[0]); E.leanNext = (E.leanNext || 0) + 1; }
     if (down && needSet && MINI[p] && MAP.boss[MINI[p]]) { for (const x of MAP.boss[MINI[p]]) needSet.delete(x); try { release(needSet); } catch (e) { } }   // the mini-boss song is done too
