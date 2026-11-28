@@ -49,8 +49,8 @@ function pollPad(rdt) {
   }
   // radial deadzones (no axis-aligned creep), rescaled so movement still starts smoothly
   const rdz = (x, y, d) => { const m = Math.hypot(x, y); if (m < d) return [0, 0]; const k = Math.min(1, (m - d) / (1 - d)) / m; return [x * k, y * k]; };
-  [PAD.lx, PAD.ly] = rdz(ax[0], ax[1], 0.22);
-  const [rx, ry] = rdz(ax[2], ax[3], 0.18);
+  [PAD.lx, PAD.ly] = rdz(ax[0], ax[1], (window.M21Q && M21Q.live ? M21Q.moveDZ() : 0.22));
+  const [rx, ry] = rdz(ax[2], ax[3], (window.M21Q && M21Q.live ? M21Q.lookDZ() : 0.18));
   PAD.rx = rx; PAD.ry = ry;
   if (b.some(v => v) || Math.hypot(PAD.lx, PAD.ly, rx, ry) > 0.2) G.inputMode = 'pad';
   const inMenu = G.state !== 'play' || G.paused;
@@ -89,7 +89,7 @@ function pollPad(rdt) {
     const m = Math.hypot(rx, ry);
     const as = PADCFG.assist ? aimAssist() : null;
     if (m > 0 && !PAD.qt) {
-      const resp = 0.25 * m + 0.75 * (Math.exp(2 * m) - 1) / (Math.exp(2) - 1), curve = resp / m;   // linear-exponential blend
+      const resp = (window.M21Q && M21Q.live && M21Q.resp) ? M21Q.resp(m) : (0.25 * m + 0.75 * (Math.exp(2 * m) - 1) / (Math.exp(2) - 1)), curve = resp / m;   // linear-exponential blend
       if (m > 0.9) PAD.lookHeld += rdt; else PAD.lookHeld = 0;
       const edge = m > 0.94 ? 1.18 : 1;
       const acc = PADCFG.accel ? 1 + Math.min(1, Math.max(0, PAD.lookHeld - 0.15) / 0.4) * 0.75 : 1;
