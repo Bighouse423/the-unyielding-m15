@@ -111,7 +111,7 @@
       if (!ok) return; const wx = side > 0 ? x0 + 3 : x0 - 1, wy = y0 + 1; if (!K.isOpen(wx + side, wy)) return;
       FL.secretKit.secretAt(K, R, L, r, wx, wy, 0, true, L.secrets.length ? 12 : 6);
     };
-    const vs = [[2, 31, 1], [35, 31, -1], [2, 16, 1], [35, 16, -1]].sort(() => R() - 0.5);
+    const vs = [[2, 31, 1], [35, 31, -1], [2, 16, 1], [35, 16, -1]]; for (let i = vs.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const t = vs[i]; vs[i] = vs[j]; vs[j] = t; }
     for (const [x, y, s] of vs) { if (L.secrets.length >= (o.secrets || 2)) break; vault(x, y, s); }
     // lights + props
     const moon = o.lc || [0.5, 0.9, 0.6];
@@ -575,8 +575,8 @@
   };
   // ---------- HUD ----------
   const panel = (ctx, t1, t2, col, hold) => {
-    const y = H - 74; ctx.save(); ctx.fillStyle = 'rgba(8,2,14,0.72)'; ctx.fillRect(W / 2 - 160, y - 4, 320, 26); ctx.restore();
-    text(ctx, t1, W / 2, y, col, 'center', 0.9); text(ctx, t2, W / 2, y + 11, '#bdb4c8', 'center', 0.72);
+    const y = H - 78; ctx.save(); ctx.fillStyle = 'rgba(6,1,12,0.92)'; ctx.fillRect(W / 2 - 168, y - 6, 336, 36); ctx.strokeStyle = 'rgba(200,160,70,0.7)'; ctx.strokeRect(W / 2 - 167.5, y - 5.5, 335, 35); ctx.restore();
+    text(ctx, t1, W / 2, y, col, 'center', 1); text(ctx, t2, W / 2, y + 13, '#f2eadc', 'center', 0.8);
     if (hold > 0.02) { const k = Math.min(1, hold / 0.8); ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(W / 2, H / 2, 9, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke(); ctx.restore(); }
   };
   if (window.M8DRAW) M8DRAW.push(function (ctx) {

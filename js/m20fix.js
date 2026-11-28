@@ -201,7 +201,15 @@
       try {
         if (window.M20 && M20.altarLineOff) return r;
         const L = altarList(), it = L[ALTARUI.sel]; const s = M20.powerLine(it);
-        if (s) { const fx = 22, fy = 6; ctx.fillStyle = 'rgba(20,4,30,0.85)'; ctx.fillRect(fx + 10, fy + 175, Math.min(372, s.length * 8 + 8), 11); text(ctx, s, fx + 14, fy + 177, '#ffd860', 'left'); }
+        if (s) {
+          const fx = 22, fy = 6, fw = W - 44, fh = H - 24;
+          // m21b: sit this line in the description box so it no longer collides with the scroll arrow and "14/17"
+          const useBox = !(window.M21B && M21B.altarpack === false);
+          const ly = useBox ? (fy + fh - 64) : (fy + 177);
+          const lw = useBox ? (fw - 24) : Math.min(372, s.length * 8 + 8);
+          ctx.fillStyle = 'rgba(20,4,30,0.9)'; ctx.fillRect(fx + 10, ly - 2, lw, 11);
+          text(ctx, s, fx + 14, ly, '#ffd860', 'left');
+        }
       } catch (e) { M20.fail('altarline', e); }
       return r;
     };

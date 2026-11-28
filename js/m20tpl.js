@@ -8,6 +8,7 @@
   const FL = M20.FL;
   const ri = (R, a, b) => a + Math.floor(R() * (b - a + 1));
   const pick = (R, a) => a[Math.floor(R() * a.length)];
+  const fy = (a, R) => { for (let i = a.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
   // a chain of rooms on a slot grid from the south row to the north row
   function slotPath(R, SX, SY) {
     let cx = ri(R, 0, SX - 1), cy = SY - 1; const path = [[cx, cy]], used = { [cx + ',' + cy]: 1 }; let side = 0;
@@ -18,7 +19,7 @@
     return { path, used };
   }
   function secretRoom(K, R, L, host, fh, sky, wt) { // a small hidden room behind a cracked wall next to the host room
-    const dirs = [[0, -1], [1, 0], [-1, 0], [0, 1]].sort(() => R() - 0.5);
+    const dirs = fy([[0, -1], [1, 0], [-1, 0], [0, 1]], R);
     for (const [dx, dy] of dirs) {
       const [hx, hy] = K.center(host); let wx, wy;
       if (dx) { wx = dx > 0 ? host.x1 + 1 : host.x0 - 1; wy = hy; } else { wy = dy > 0 ? host.y1 + 1 : host.y0 - 1; wx = hx; }
@@ -58,7 +59,7 @@
       const x0 = 2 + Math.floor(R() * (MW - 7)), y0 = 2 + Math.floor(R() * (MH - 7)), r = { x0, y0, x1: x0 + 2, y1: y0 + 2 };
       let ok = true; for (let y = y0 - 1; y <= y0 + 3 && ok; y++) for (let x = x0 - 1; x <= x0 + 3; x++) if (!SOLID[y * MW + x]) { ok = false; break; }
       if (!ok) continue;
-      const sides = [[x0 + 1, y0 - 1, 0, -1], [x0 + 1, y0 + 3, 0, 1], [x0 - 1, y0 + 1, -1, 0], [x0 + 3, y0 + 1, 1, 0]].sort(() => R() - 0.5);
+      const sides = fy([[x0 + 1, y0 - 1, 0, -1], [x0 + 1, y0 + 3, 0, 1], [x0 - 1, y0 + 1, -1, 0], [x0 + 3, y0 + 1, 1, 0]], R);
       for (const [wx, wy, dx, dy] of sides) { const j = (wy + dy) * MW + wx + dx; if (!SOLID[j] && FH[j] > -0.5 && FH[j] < 0.5 && !(avoid && avoid(wx + dx, wy + dy))) return secretAt(K, R, L, r, wx, wy, FH[j], false, wt); }
     }
     return null;
@@ -117,7 +118,7 @@
     for (const r of pr) if (r.kind === 'path' && R() < 0.6) { const [x, y] = K.cells(r, R, 1)[0] || []; if (x) L.props.push({ type: 'bones', x, y, z: r.fh }); }
     for (const r of pr) if (r.kind === 'path' && R() < 0.5) { const c = K.cells(r, R, 1)[0]; if (c) L.pickups.push({ type: R() < 0.65 ? 'vial' : 'mana', x: c[0], y: c[1] }); }
     // secrets: an attic room behind a cracked chimney wall (1-2)
-    const hosts = pr.filter(r => r.kind === 'path').sort(() => R() - 0.5);
+    const hosts = fy(pr.filter(r => r.kind === 'path'), R);
     for (const h of hosts) { if (L.secrets.length >= (o.secrets || 2)) break; secretRoom(K, R, L, h, h.fh, true, L.secrets.length ? 12 : 6); }
     const [sx, sy] = K.center(S), [rx, ry] = K.center(Rw), [tx, ty] = K.center(T);
     L.start = { x: sx + 0.5, y: sy + 0.5, ang: Math.atan2(K.center(pr[1])[1] - sy, K.center(pr[1])[0] - sx) };
@@ -166,7 +167,7 @@
     for (const [a, b] of bands) {
       const cells = []; for (let i = 0; i < D.length; i++) if (D[i] >= a * maxD && D[i] < b * maxD && !SOLID[i] && FH[i] > -0.5) { const x = i % MW, y = (i / MW) | 0; if (Math.hypot(x - cav.cx, (y - cav.cy) * 1.2) > 7.5) cells.push([x, y]); }
       if (!cells.length) continue; let x0 = 99, y0 = 99, x1 = 0, y1 = 0; for (const [x, y] of cells) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-      const r = { x0, y0, x1, y1, kind: 'path', ambush: true }; r.free = cells.map(([x, y]) => [x + 0.5, y + 0.5]).sort(() => R() - 0.5); rooms.push(r);
+      const r = { x0, y0, x1, y1, kind: 'path', ambush: true }; r.free = fy(cells.map(([x, y]) => [x + 0.5, y + 0.5]), R); rooms.push(r);
       const c = r.free[0]; L.lights.push({ x: c[0], y: c[1], r: 5, i: 0.9, c: o.green ? [0.35, 1.0, 0.5] : [1.0, 0.5, 0.25], flicker: true });
       L.props.push({ type: 'candelabra', x: c[0], y: c[1], z: 0 }); r.free.shift();
       if (R() < 0.6) { const p = r.free.pop(); if (p) L.pickups.push({ type: R() < 0.65 ? 'vial' : 'mana', x: p[0], y: p[1] }); }
@@ -277,7 +278,7 @@
     for (const r of rooms) if (r.kind === 'path' && R() < 0.55) { const c = K.cells(r, R, 1).find(([x, y]) => FH[(y | 0) * MW + (x | 0)] >= 0); if (c) L.pickups.push({ type: R() < 0.65 ? 'vial' : 'mana', x: c[0], y: c[1] }); }
     // secrets: walled-off sluice rooms between chambers
     const unused = cells.filter(c => !route.some(r => r[0] === c.cx && r[1] === c.cy));
-    for (const c of rooms.filter(r => r.kind === 'path').sort(() => R() - 0.5)) { if (L.secrets.length >= (o.secrets || 1)) break; vaultIn(K, R, L, c, L.secrets.length ? 12 : 6); }
+    for (const c of fy(rooms.filter(r => r.kind === 'path'), R)) { if (L.secrets.length >= (o.secrets || 1)) break; vaultIn(K, R, L, c, L.secrets.length ? 12 : 6); }
     const S = get(0, 2);
     L.start = { x: S.x0 + 1.5, y: S.y1 - 3.5, ang: -Math.PI / 2 }; L.back = [S.x0 + 1.5, S.y1 - 1.5];
     FH[(S.y1 - 4) * MW + S.x0 + 1] = 0; FT[(S.y1 - 4) * MW + S.x0 + 1] = 4;
