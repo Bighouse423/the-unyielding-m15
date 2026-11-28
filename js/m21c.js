@@ -226,7 +226,7 @@
           if (typeof PAD !== 'undefined' && PAD.connected) {
             const pads = navigator.getGamepads ? navigator.getGamepads() : [];
             const g = pads[PAD.idx] || pads[0];
-            PAD._l3 = !!(g && g.buttons && g.buttons[10] && g.buttons[10].pressed);
+            const ri = (typeof padBind==='function') ? padBind('run',10) : 10; PAD._l3 = !!(g && g.buttons && g.buttons[ri] && g.buttons[ri].pressed);
             if (M.sprintMode() === 1) PAD.run = !!PAD._l3;
           }
         } catch (e) { fail('pad', e); }

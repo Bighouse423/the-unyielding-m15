@@ -4,6 +4,8 @@ const PAD = { idx: -1, connected: false, id: '', prev: [], held: new Set(), lx: 
 // v2.7 controller settings (pause menu -> CONTROLLER), saved between sessions
 const PADCFG = Object.assign({ sx: 1, sy: 1, inv: false, assist: 1, turn: 'R3', accel: true, vib: 1 }, (() => { try { return JSON.parse(localStorage.getItem('tu_pad') || '{}'); } catch (e) { return {}; } })());
 function savePadCfg() { try { localStorage.setItem('tu_pad', JSON.stringify(PADCFG)); } catch (e) { } }
+function padBind(act, def) { const o = PADCFG && PADCFG.binds; const v = o && o[act]; return (v == null || v < 0 || v > 16) ? def : (v | 0); }
+function padName(i) { return ({0:'CROSS',1:'CIRCLE',2:'SQUARE',3:'TRIANGLE',4:'L1',5:'R1',6:'L2',7:'R2',8:'CREATE',9:'OPTIONS',10:'L3',11:'R3',12:'DPAD UP',13:'DPAD DOWN',14:'DPAD LEFT',15:'DPAD RIGHT'})[i] || ('B'+i); }
 function padDZ(v, d) { const a = Math.abs(v); if (a < d) return 0; return Math.sign(v) * Math.min(1, (a - d) / (1 - d)); }
 addEventListener('gamepaddisconnected', e => {
   if (!e.gamepad || e.gamepad.index !== PAD.idx) return;
@@ -66,22 +68,22 @@ function pollPad(rdt) {
     else if (dir) { PAD.navT -= rdt; if (PAD.navT <= 0) { PAD.navT = 0.09; KP[dir] = true; } }
     PAD.stickNav = !!dir;
   } else {
-    padHold('Space', b[0]);                         // Cross: jump
-    if (P_(1) || P_(4)) KP.PadRoll = true;          // Circle (or L1): roll toward the left stick
-    if (P_(2)) KP.KeyR = true;                      // Square: holy sidearm
-    if (P_(3) || P_(5)) KP.Tab = true;              // Triangle / R1: swap whip <-> shield
+    padHold('Space', b[padBind('jump', 0)]);          // jump (default Cross)
+    if (P_(padBind('roll', 1))) KP.PadRoll = true;  // roll (default Circle)
+    if (P_(padBind('side', 2))) KP.KeyR = true;      // sidearm (default Square)
+    if (P_(padBind('swap', 3))) KP.Tab = true;       // swap (default Triangle)
     if (P_(14)) KP.Digit1 = true; if (P_(15)) KP.Digit2 = true; // D-pad left/right: pick whip / shield
-    if (P_(7)) MBP[0] = true; PAD.r2 = b[7];        // R2: sword
-    if (P_(6)) KP.PadOff = true; PAD.l2 = b[6];     // L2: off-hand (lash, or hold to block / tap to parry)
+    if (P_(padBind('sword', 7))) MBP[0] = true; PAD.r2 = b[padBind('sword', 7)];  // sword (default R2)
+    if (P_(padBind('off', 6))) KP.PadOff = true; PAD.l2 = b[padBind('off', 6)];  // off-hand (default L2)
     // L3: sprint toggle. Stays on through short stick wobbles; drops when you let go (0.25 s grace) or pull back
-    if (P_(10)) { PAD.run = !PAD.run; rumbleFx(PAD.run ? 'sprintOn' : 'tick'); }
+    if (P_(padBind('run', 10))) { PAD.run = !PAD.run; rumbleFx(PAD.run ? 'sprintOn' : 'tick'); }
     if (PAD.run) { if (Math.hypot(PAD.lx, PAD.ly) < 0.2 || PAD.ly > 0.5) { PAD.runGrace = (PAD.runGrace || 0) + rdt; if (PAD.runGrace > 0.25) PAD.run = false; } else PAD.runGrace = 0; }
     // R3: 180 quick-turn (configurable), D-pad up: re-centre the view
     if (((P_(11) && PADCFG.turn === 'R3') || (P_(13) && PADCFG.turn === 'DPAD')) && !PAD.qt && !G.finisher && !P.latch) { PAD.qt = { t: 0, from: P.ang }; rumbleFx('tick'); }
     if (P_(12)) K.Home = true; else if (!b[12]) K.Home = false;
     if (PAD.qt) { PAD.qt.t += rdt; const k = Math.min(1, PAD.qt.t / 0.2), e = k * k * (3 - 2 * k); P.ang = PAD.qt.from + Math.PI * e; if (k >= 1) PAD.qt = null; }
-    if (P_(9)) KP.Escape = true;                    // Options: pause
-    if (P_(8)) KP.PadTip = true;                    // Create / Share: dismiss a tip (M8)
+    if (P_(padBind('pause', 9))) KP.Escape = true;   // pause (default Options)
+    if (P_(padBind('tip', 8))) KP.PadTip = true;     // dismiss tip (default Create)
     // right stick look: exponential response (fine aim near centre), outer-edge turn boost, optional ramp-up
     // acceleration when held at full tilt, separate X/Y speed, invert Y, gentle aim assist
     const m = Math.hypot(rx, ry);
