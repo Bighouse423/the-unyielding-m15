@@ -5,7 +5,7 @@
 // Kill switch: ?freshsave=0 (uses the shared keys again).
 (function () {
   if (/[?&]freshsave=0/.test(location.search)) return;
-  const NS = /[?&]unlockall=1/.test(location.search) ? 'tub_m21f_all:' : 'tub_m21f:';
+  const NS = /[?&]unlockall=1/.test(location.search) ? 'tub_m21g_all:' : 'tub_m21g:';
   let ls = null; try { ls = window.localStorage; } catch (e) { return; }
   if (!ls) return;
   const P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
