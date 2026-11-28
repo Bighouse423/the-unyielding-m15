@@ -1900,7 +1900,7 @@ function drawHUD(ctx, cam, rdt) {
     ctx.fillStyle = '#f0c040'; ctx.fillRect(239, 16, 2, 13); ctx.fillStyle = '#30e090'; ctx.fillRect(239, 15, 2, 2);
   }
   // bottom panel
-  const py = H - 33;
+  const py = H - ((window.M21C && M21C.chromeH) ? M21C.chromeH() : 33);
   P.hpLag = P.hpLag === undefined ? P.hp : (P.hpLag > P.hp ? Math.max(P.hp, P.hpLag - rdt * (P.hurtT > 0 ? 8 : 60)) : P.hp);
   P.mpLag = P.mpLag === undefined ? P.mana : (P.mpLag > P.mana ? Math.max(P.mana, P.mpLag - rdt * 30) : P.mana);
   const g = ctx.createLinearGradient(0, py, 0, H); g.addColorStop(0, 'rgba(52,14,64,0.94)'); g.addColorStop(0.5, 'rgba(30,8,40,0.96)'); g.addColorStop(1, 'rgba(10,2,14,0.98)');
@@ -2143,7 +2143,7 @@ function render(rdt) {
     hctx.restore();
   }
   if (G.fade > 0) { G.fade = Math.max(0, G.fade - rdt * 2.2); hctx.fillStyle = `rgba(6,0,10,${G.fade})`; hctx.fillRect(0, 0, W, H); }
-  sctx.drawImage(hud, 0, 0);
+  if (window.M21C && M21C.blitHud) M21C.blitHud(sctx); else sctx.drawImage(hud, 0, 0);
 }
 // ---------- pause menu (mouse, keyboard hotkeys, arrows / D-pad navigation) ----------
 const PM_ITEMS = [
