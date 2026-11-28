@@ -2116,7 +2116,7 @@ function render(rdt) {
   else hctx.clearRect(0, 0, W, H);
   if (G.state === 'title') drawTitle(hctx);
   if (G.state === 'dead' && !RUN.on) drawDead(hctx);
-  if (G.state === 'dead' && RUN.on) { hctx.fillStyle = `rgba(120,0,10,${Math.min(0.55, G.deadT * 0.6)})`; hctx.fillRect(0, 0, W, H); }
+  if (G.state === 'dead' && RUN.on) { if (window.M21G && M21G.drawDead) M21G.drawDead(hctx); else { hctx.fillStyle = `rgba(120,0,10,${Math.min(0.55, G.deadT * 0.6)})`; hctx.fillRect(0, 0, W, H); } }
   if (G.state === 'victory') drawVictory(hctx);
   if (G.state === 'pick') drawPick(hctx);
   if (G.state === 'altar') drawAltar(hctx);
