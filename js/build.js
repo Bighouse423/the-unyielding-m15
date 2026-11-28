@@ -3,13 +3,18 @@
 // m5c: also shows the build in the run HUD, warns mid-run when a newer build is live, and hard-pins the
 // stage -> boss order so no path (theme fallback, endless, stale cfg) can repeat a boss in stages 1-7.
 // m7: pinned through stage 10 (the Lich King); stages 11+ are THE ABYSS (corrupted rotation, see m7.js).
-const BUILD = 'm21a';
+const BUILD = 'm21b';
 const STAGE_PIN = { 1: ['nave', 'vknight'], 2: ['crypt', 'spider'], 3: ['ossuary', 'colossus'], 4: ['courtyard', 'alphawolf'], 5: ['belfry', 'matriarch'], 6: ['arena', 'minotaur'], 7: ['necropolis', 'witch'], 8: ['kennels', 'cerberax'], 9: ['cathedral', 'uknight'], 10: ['throne', 'lich'] };
 (function () {
+  // m21b: hide the browser build tag and version.txt poller inside the Steam/desktop wrapper. Web is unchanged.
+  // ?deskbuild=1 forces the tag and poller on even in the wrapper.
+  const DESK = !!(window.TU_DESKTOP || window.M12DESKTOP) && !/[?&]deskbuild=1/.test(location.search);
   const tag = () => 'BUILD ' + BUILD.toUpperCase();
-  const _dt = drawTitle; drawTitle = function (ctx) { _dt(ctx); text(ctx, tag(), 6, H - 10, '#8070a8', 'left'); };
-  if (typeof drawHubHUD === 'function') { const _dh = drawHubHUD; drawHubHUD = function (ctx) { _dh(ctx); text(ctx, tag(), 6, 30, '#8070a8', 'left'); }; }
-  if (typeof drawRunHUD === 'function') { const _dr = drawRunHUD; drawRunHUD = function (ctx) { _dr(ctx); if (RUN.on) text(ctx, BUILD.toUpperCase(), W - 5, 7, '#6a5a90', 'right'); }; }
+  if (!DESK) {
+    const _dt = drawTitle; drawTitle = function (ctx) { _dt(ctx); text(ctx, tag(), 6, H - 10, '#8070a8', 'left'); };
+    if (typeof drawHubHUD === 'function') { const _dh = drawHubHUD; drawHubHUD = function (ctx) { _dh(ctx); text(ctx, tag(), 6, 30, '#8070a8', 'left'); }; }
+    if (typeof drawRunHUD === 'function') { const _dr = drawRunHUD; drawRunHUD = function (ctx) { _dr(ctx); if (RUN.on) text(ctx, BUILD.toUpperCase(), W - 5, 7, '#6a5a90', 'right'); }; }
+  }
   // pin stage theme + boss
   const _sc = stageCfg; stageCfg = function (n) { const c = _sc(n); const p = STAGE_PIN[n]; if (p && THEMES[p[0]]) { c.theme = p[0]; c.boss = null; c.endless = 0; } return c; };
   GAME.rogue.stageCfg = stageCfg;
@@ -18,14 +23,16 @@ const STAGE_PIN = { 1: ['nave', 'vknight'], 2: ['crypt', 'spider'], 3: ['ossuary
     const p = RUN.on && !RUN.hub && STAGE_PIN[RUN.stage];
     if (p && EDEF[p[1]] && LEVEL.bossType !== p[1]) { console.warn('stage pin: stage ' + RUN.stage + ' boss ' + LEVEL.bossType + ' -> ' + p[1]); LEVEL.bossType = p[1]; }
   };
-  let warned = false;
-  const check = () => {
-    fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : null).then(v => {
-      v = v && v.trim(); if (!v || v === BUILD || !/^[\w.-]{1,16}$/.test(v)) return;
-      if (G.state === 'title' || (RUN.hub && !RUN.on)) location.replace('index.html?v=' + v);
-      else if (!warned && G.state === 'play') { warned = true; toast('NEW BUILD ' + v.toUpperCase() + ' IS LIVE', 'Head back to the Chapel to update.', '#a0ffd0', 4); }
-    }).catch(() => { });
-  };
-  setTimeout(check, 3000); setInterval(check, 20000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  if (!DESK) {
+    let warned = false;
+    const check = () => {
+      fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : null).then(v => {
+        v = v && v.trim(); if (!v || v === BUILD || !/^[\w.-]{1,16}$/.test(v)) return;
+        if (G.state === 'title' || (RUN.hub && !RUN.on)) location.replace('index.html?v=' + v);
+        else if (!warned && G.state === 'play') { warned = true; toast('NEW BUILD ' + v.toUpperCase() + ' IS LIVE', 'Head back to the Chapel to update.', '#a0ffd0', 4); }
+      }).catch(() => { });
+    };
+    setTimeout(check, 3000); setInterval(check, 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  }
 })();
