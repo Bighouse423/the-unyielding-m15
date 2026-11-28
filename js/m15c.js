@@ -101,6 +101,7 @@
     if (G.bigText && /^STAGE \d+$/.test(G.bigText.t1 || '')) G.bigText = null;
   }));
   M15.card = () => card;
+  M15.clearCard = () => { card = null; };
   function drawCard(ctx, rdt) {
     if (!card) return false;
     if (G.state !== 'play') { if (G.state !== 'pick' && G.state !== 'altar') card = null; return false; }
