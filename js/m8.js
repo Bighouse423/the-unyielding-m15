@@ -189,7 +189,8 @@
   const oc = document.createElement('canvas'); oc.width = W; oc.height = H; const ox = oc.getContext('2d');
   OPT.draw = function (ctx) {
     const a = 0.35 + 0.65 * ease(this.anim);
-    ctx.fillStyle = `rgba(10,0,20,${0.82 * a})`; ctx.fillRect(0, 0, W, H);
+    const dimA = (window.M21B && M21B.setscrim) ? 1 : (0.82 * a);
+    ctx.fillStyle = `rgba(8,0,16,${dimA})`; ctx.fillRect(0, 0, W, H);
     const dy = Math.round((1 - ease(this.anim)) * 10);
     ctx.save(); ctx.globalAlpha = a; ctx.translate(0, dy);
     if (this.page === 'sets') goldFrame(ctx, 24, PY + 6, W - 48, PH - 12, '#c060ff'); else goldFrame(ctx, PX, PY, PW, PH, '#c060ff');

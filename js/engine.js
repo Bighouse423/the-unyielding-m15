@@ -238,6 +238,7 @@ function renderWorld(cam) {
             let tu = (fx * 64) | 0, tv = (fy * 64) | 0;
             if (isBlood) { tu = (tu + ((SH.t * 6) | 0)) & 63; tv = (tv + ((Math.sin(SH.t + fx * 6) * 3) | 0)) & 63; }
             let p = td[tv * 64 + tu];
+            if (!isBlood && window.M21B && M21B.floormip && dist > 1.15 && typeof M21B.floorPix === 'function') { const mq = M21B.floorPix(ft, fx, fy, dist); if (mq != null) p = mq; }
             if (dec) { const a = dec[((fy * DEC) | 0) * DEC + ((fx * DEC) | 0)]; if (a > 18) { const bc = BLOODC[a]; p = a > 90 ? (0xff000000 | bc) : (p & 0xff000000) | (((((p & 0xff) + (bc & 0xff)) >> 1)) | ((((p >> 8) & 0xff) >> 2) << 8) | (((((p >> 16) & 0xff) + ((bc >> 16) & 0xff)) >> 2) << 16)); } }
             let hk = dist * HZR; if (hk > HZM) hk = HZM; const ik = 1 - hk;
             if (isBlood) shadeK(r * EW + col, p, dist, 1.3 * ik, 1.1 * ik, 1.1 * ik, HZ[0] * hk, HZ[1] * hk, HZ[2] * hk, ik);

@@ -7,6 +7,7 @@ function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5
 function buildCrypt(theme, seed) {
   theme = theme || {};
   const R = mulberry(seed || 1); const ri = (a, b) => a + Math.floor(R() * (b - a + 1)); const pick = a => a[Math.floor(R() * a.length)];
+  const fy = a => { for (let i = a.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
   MW = 50; MH = 58; const N = MW * MH;
   FH = new Float32Array(N); CH = new Float32Array(N); SOLID = new Uint8Array(N);
   WT = new Uint8Array(N); FT = new Uint8Array(N); CT = new Uint8Array(N); SKY = new Uint8Array(N);
@@ -125,7 +126,7 @@ function buildCrypt(theme, seed) {
   // crack; only the draft of dust and a whisper give them away). One secret usually leads on to a deeper VAULT behind a second false wall.
   const secrets = []; const cracks = [];
   const nSec = 3 + (R() < 0.5 ? 1 : 0);
-  const hostCands = pr.slice(0, -1).filter(r => freeNb(r).length).sort(() => R() - 0.5);
+  const hostCands = fy(pr.slice(0, -1).filter(r => freeNb(r).length));
   const secretBehind = (host, kind, passage) => {
     const nb = freeNb(host); if (!nb.length) return null; const [sx2, sy2] = pick(nb); used[key(sx2, sy2)] = 'secret';
     const s = mkRoom(sx2, sy2, 'secret'); carveRoom(s);
@@ -144,7 +145,7 @@ function buildCrypt(theme, seed) {
     secretBehind(host, KINDS[secrets.length] || 'false');
   }
   // a deeper vault behind one of them (multi-room hidden area)
-  const vh = secrets.filter(s => freeNb(s).length).sort(() => R() - 0.5)[0];
+  const vh = fy(secrets.filter(s => freeNb(s).length))[0];
   if (vh) { const v = secretBehind(vh, 'false'); if (v) { v.vault = true; v.parentSec = vh.id; } }
   // ---- boss arena (vaulted, high) + gate
   const last = pr[pr.length - 1]; const [lx] = center(last);
@@ -320,7 +321,7 @@ function buildCrypt(theme, seed) {
   }
   if (elite) { for (let k = 0; k < 3; k++) { const [x, y] = freeCell(elite, 1); spawns.push([pick(VX ? VX.elite : CY ? ['werewolf', 'azombie', 'fzombie'] : BF ? ['gargoyle', 'werewolf', 'azombie'] : ['azombie', 'skeleton', 'fzombie', 'spiderling']), x, y, 'elite']); } }
   LEVEL.secrets = []; 
-  const SNAMES = (VX ? VX.snames.slice() : CY ? ['The Gardener\'s Grave', 'The Moon Shrine', 'The Drowned Grotto', 'The Hedge Saint', 'The Widow\'s Bower', 'The Lantern Crypt', 'The Thorn Chapel'] : BF ? ['The Ringer\'s Loft', 'The Clock Hollow', 'The Rookery', 'The Bell-Founder\'s Cell', 'The Rope Store', 'The Silent Carillon', 'The Owl\'s Roost'] : OSS ? ['The Marrow Shrine', 'The Red Confessional', 'The Saint of Bones', 'The Drowned Reliquary', 'The Crimson Niche', 'The Bone Choir', 'The Flayed Chantry'] : ['The Bone Oratory', 'The Forgotten Ossuary', 'The Weeping Niche', 'The Silent Reliquary', 'The Hollow Saint', 'The Widow\'s Larder', 'The Gravedigger\'s Hole']).sort(() => R() - 0.5);
+  const SNAMES = (fy(VX ? VX.snames.slice() : CY ? ['The Gardener\'s Grave', 'The Moon Shrine', 'The Drowned Grotto', 'The Hedge Saint', 'The Widow\'s Bower', 'The Lantern Crypt', 'The Thorn Chapel'] : BF ? ['The Ringer\'s Loft', 'The Clock Hollow', 'The Rookery', 'The Bell-Founder\'s Cell', 'The Rope Store', 'The Silent Carillon', 'The Owl\'s Roost'] : OSS ? ['The Marrow Shrine', 'The Red Confessional', 'The Saint of Bones', 'The Drowned Reliquary', 'The Crimson Niche', 'The Bone Choir', 'The Flayed Chantry'] : ['The Bone Oratory', 'The Forgotten Ossuary', 'The Weeping Niche', 'The Silent Reliquary', 'The Hollow Saint', 'The Widow\'s Larder', 'The Gravedigger\'s Hole']));
   const VNAMES = VX ? VX.vnames : CY ? ['The Moonlit Vault', 'The Hunter\'s Cache'] : BF ? ['The Bell Vault', 'The Founder\'s Strongroom'] : OSS ? ['The Blood Vault', 'The Tithe Vault'] : ['The Deep Vault', 'The Sexton\'s Armory'];
   let rew = 0;
   secrets.forEach((s, k) => {

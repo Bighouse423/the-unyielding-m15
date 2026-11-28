@@ -228,9 +228,11 @@ function drawAltar(ctx) {
     // M7c: scroll arrows (lit when there is more that way) + a position counter
     const ax = fx + fw - 8, up = top > 0, dn = top + ROWS < L.length, pulse = (G.t * 3 | 0) % 2 ? '#ffe080' : '#f0c040';
     for (let k = 0; k < 3; k++) { ctx.fillStyle = up ? pulse : 'rgba(120,80,150,0.5)'; ctx.fillRect(ax + 2 - k, fy + 37 + k, 1 + 2 * k, 1); ctx.fillStyle = dn ? pulse : 'rgba(120,80,150,0.5)'; ctx.fillRect(ax + 2 - k, fy + 175 - k, 1 + 2 * k, 1); }
-    if (dn) { for (let k = 0; k < 3; k++) { ctx.fillStyle = pulse; ctx.fillRect(W / 2 - 2 + k, fy + 172 + k, 5 - 2 * k, 1); } }
-    if (up) { for (let k = 0; k < 3; k++) { ctx.fillStyle = pulse; ctx.fillRect(W / 2 - k, fy + 39 + k, 1 + 2 * k, 1); } }
-    text(ctx, (ALTARUI.sel + 1) + '/' + L.length, fx + fw - 12, fy + 178, '#a090b0', 'right'); }
+    if (!(window.M21B && M21B.altarpack)) {
+      if (dn) { for (let k = 0; k < 3; k++) { ctx.fillStyle = pulse; ctx.fillRect(W / 2 - 2 + k, fy + 172 + k, 5 - 2 * k, 1); } }
+      if (up) { for (let k = 0; k < 3; k++) { ctx.fillStyle = pulse; ctx.fillRect(W / 2 - k, fy + 39 + k, 1 + 2 * k, 1); } }
+    }
+    text(ctx, (ALTARUI.sel + 1) + '/' + L.length, fx + 16, fy + 8, '#a090b0', 'left'); }
   L.forEach((it, i) => {
     if (i < top || i >= top + ROWS) return;
     const inf = altarInfo(it), st = altarState(it), sel = i === ALTARUI.sel; ALTARUI.hit.rows.push([fx + 10, y - 2, fw - 20, 16, i]);
