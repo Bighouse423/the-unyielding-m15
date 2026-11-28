@@ -37,8 +37,21 @@ const M13E_MAP = {"stage":{"1":["sd_mid1","sd_heavy1"],"2":["bh_mid1","bh_heavy1
   }
   function release(keep) {
     const playing = SFX.fm && SFX.fm.name;
-    for (const n of Object.keys(st)) if (!keep.has(n) && key(n) !== playing) { delete st[n]; delete SFX.buf[key(n)]; delete E.loaded[n]; }
+    const liveBuf = SFX.fm && SFX.fm.buf;
+    const held = (n, kn) => {
+      if (keep && keep.has(n)) return true;
+      if (kn === playing) return true;
+      try {
+        if (window.M21L && M21L.ixkeep && typeof M21L.held === 'function' && M21L.held(kn, n, SFX.buf[kn], liveBuf, playing)) return true;
+      } catch (e) { }
+      return false;
+    };
+    for (const n of Object.keys(st)) {
+      const kn = key(n);
+      if (!held(n, kn)) { delete st[n]; delete SFX.buf[kn]; delete E.loaded[n]; }
+    }
   }
+  E.release = release;
   // ---------- where are we? ----------
   const inRun = () => typeof RUN !== 'undefined' && RUN.on && typeof G !== 'undefined' && G.state !== 'title';
   function place() {
