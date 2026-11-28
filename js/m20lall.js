@@ -1,5 +1,5 @@
 // ===== m20m unlock-all TEST variant (t237u) =====
-// ?unlockall=1  -> own localStorage NS tub_m21v_all: (never touches tub_m21v: or a bare tu_save)
+// ?unlockall=1  -> own localStorage NS tub_m21w_all: (never touches tub_m21v: or a bare tu_save)
 // Seeds a complete-unlock save so every altar row, feat, lore page, floor, NPC and cosmetic is available.
 // Blessings stay at 0 (balance/difficulty unchanged). Daily Descent stays off.
 // Title gains START AT STAGE (1-10 + Abyss 1-5). Auto-opens every floor entrance in a run (like ?floorall=1).
@@ -7,16 +7,19 @@
 (function () {
   const Q = location.search;
   const on = /[?&]unlockall=1/.test(Q) && !/[?&]unlockall=0/.test(Q);
-  const NS = 'tub_m21v_all:';
+  const tryOn = !/[?&](m21w|m21|try)=0/.test(Q) && (/[?&]tryall=1/.test(Q) || /[?&]try_(hitstop|style|buffer|assist|daily|mutators|ascension)=1/.test(Q));
+  const NS = (tryOn ? 'tub_m21w_try_all:' : 'tub_m21w_all:');
   const M = window.M20LALL = { on: on, ns: on ? NS : null, seeded: 0, warp: 1, shards: 0, err: [] };
   const fail = (w, e) => { if (M.err.length < 12) M.err.push(w + ': ' + (e && e.message || e)); };
   if (!on) return;
 
   // ---------- storage namespace: must run BEFORE hub.js loadSave ----------
-  // Public buddy builds already ran m20ipub, which picks tub_m21v_all: when this flag is set.
+  // Public buddy builds already ran m20ipub, which picks tub_m21w_all: when this flag is set.
   // On the Mac there is no m20ipub, so we wrap here. Never prefix twice.
   try {
-    if (!(window.M20IPUB && M20IPUB.ns === NS)) {
+    if (window.M20IPUB && M20IPUB.ns) {
+      /* already wrapped (m20ipub or m21wpre) — never prefix twice */
+    } else {
       const ls = window.localStorage;
       if (ls) {
         const P = Storage.prototype, g = P.getItem, s = P.setItem, r = P.removeItem;
