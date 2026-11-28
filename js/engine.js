@@ -209,7 +209,9 @@ function renderWorld(cam) {
   const skyT = Engine.tex.sky;
   // m20: per-texture sky height (128 = the old mapping exactly; 256 = taller skies so looking up doesn't stretch row 0)
   const skyH = skyT.h || 128, skyO = skyH + 22, skyM = skyH - 1, OW = OPENW;
-  for (let col = 0; col < EW; col++) {
+  const _cstep = (window.M21E && M21E.stride) ? (M21E.stride() | 0) : 1;
+  const cstep = (_cstep === 2 || _cstep === 3) ? _cstep : 1;
+  for (let col = 0; col < EW; col += cstep) {
     const camX = (col + 0.5 - EW / 2) / EP;
     const rdx = dx - dy * camX, rdy = dy + dx * camX;
     let mx = Math.floor(cam.x), my = Math.floor(cam.y);
@@ -302,6 +304,17 @@ function renderWorld(cam) {
       ci = ni;
     }
     for (let r = ytop; r < ybot; r++) { let v = ((r - hor) / RK + skyO) | 0; if (v < 0) v = 0; if (v > skyM) v = skyM; PIX[r * EW + col] = skyT.d[v * 512 + skyU]; ZB[r * EW + col] = 1e9; }
+  }
+  if (cstep > 1) {
+    for (let col = 0; col < EW - 1; col++) {
+      if (col % cstep === 0) continue;
+      const src = col - (col % cstep);
+      for (let r = 0; r < EH; r++) {
+        const di = r * EW + col, si = r * EW + src;
+        PIX[di] = PIX[si]; ZB[di] = ZB[si];
+      }
+    }
+    if (window.M21E) M21E.n.stride++;
   }
 }
 function drawFace(col, r0, r1, d, hor, eye, def, u, wint, key, hx, hy, side, zb = -99, zt = 99) {
